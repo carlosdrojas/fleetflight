@@ -139,6 +139,8 @@ def show_results(items):
         window = item.get("max_window")
         if window:
             detail = f"window {window['duration_ms']} ms" + (" (open)" if window["open"] else "")
+        elif item.get("worst_case_ms") is not None:
+            detail = f"worst window {item['worst_case_ms']} ms (budget {item.get('bound_ms')} ms)"
         table.add_row(f"{item['id']} {item['name']}", item["result"], detail,
                       style="red" if item["result"] == "FAIL" else "green")
     console.print(table)
