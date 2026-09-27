@@ -34,7 +34,7 @@ CEX=$("$PY" scripts/artifacts.py select "$RUN/check-v031.json")
 
 printf '\n3. Explain the I1 counterexample selected from this report.\n'
 pause
-expect_exit 0 "$FF" explain "$CEX" --out "$RUN"
+expect_exit 1 "$FF" explain "$CEX" --out "$RUN"
 
 printf '\n4. Replay the original failure 100 times.\n'
 pause

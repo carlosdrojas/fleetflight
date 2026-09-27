@@ -16,7 +16,7 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from fleetflight.core import Bounds, Move, SCHEMA_CHECK_REPORT, SCHEMA_COUNTEREXAMPLE, SCHEMA_RUN_LIST, short_hash
+from fleetflight.core import TICK_MS, Bounds, Move, SCHEMA_CHECK_REPORT, SCHEMA_COUNTEREXAMPLE, SCHEMA_RUN_LIST, short_hash
 from fleetflight.regress import generate, run_counterexample
 from fleetflight.report import to_junit, to_markdown
 from fleetflight.sim import ScriptedScheduler, SeededScheduler, replay, simulate
@@ -32,8 +32,8 @@ def _entrypoint(module, name):
     return entry
 
 
-def load_model(name="core-ref", sut=None, bounds=None):
-    return _entrypoint("fleetflight.models", "load_model")(name, sut=sut, bounds=bounds)
+def load_model(name="core-ref", sut=None, bounds=None, **options):
+    return _entrypoint("fleetflight.models", "load_model")(name, sut=sut, bounds=bounds, **options)
 
 
 def check_model(model, bounds, on_progress):
@@ -71,11 +71,12 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--horizon-ms", type=int, default=Bounds().horizon_ms)
     check.add_argument("--out", type=Path, default=Path("out"))
     check.add_argument("--json", type=Path)
+    check.add_argument("--only", help="comma-separated injections to allow (default: all the model offers)")
     commands["explain"].add_argument("counterexample")
     commands["explain"].add_argument("--out", type=Path, default=Path("out"))
     sim = commands["sim"]
     sim.add_argument("--seed", type=int, required=True)
-    sim.add_argument("--scenario", choices=["bms-fault-basic"])
+    sim.add_argument("--scenario")
     sim.add_argument("--horizon-ms", type=int, default=Bounds().horizon_ms)
     sim.add_argument("--json", type=Path)
     replay_parser = commands["replay"]
@@ -143,21 +144,60 @@ def show_results(items):
     console.print(table)
 
 
-def show_trace(steps):
+def display_keys(describe, timer_keys):
+    """Swimlane keys plus the given timers; None (show every key) if the model doesn't mark lanes."""
+    lanes = [item["key"] for item in describe.get("snapshot_keys", []) if item.get("lane")]
+    if not lanes:
+        return None
+    # The bus changes on every heartbeat; in the terminal its traffic is summarised by the events column.
+    lanes = [key for key in lanes if key != "bus"] or lanes
+    return lanes + [key for key in timer_keys if key and key not in lanes]
+
+
+ROUTINE_EVENTS = {"send", "deliver", "refresh"}
+
+
+def show_trace(steps, keys=None):
     if not steps:
         raise ValueError("trace must contain an initial state")
-    keys = [key for key in steps[0]["snapshot"] if key != "t_ms"]
+    compact = bool(keys)
+    if keys:
+        keys = [key for key in keys if key in steps[0]["snapshot"]]
+    keys = keys or [key for key in steps[0]["snapshot"] if key != "t_ms"]
     table = Table("Step", "t(ms)", "Move / events", *keys, "Violations", box=None)
-    for step in steps:
+    folded = 0
+    for index, step in enumerate(steps):
+        # Fold runs of plain ticks that change nothing shown (like the UI's "··· N ticks" rows).
+        quiet = (index + 1 < len(steps) and index > 0 and step["move"] and not step["move"]["injected"]
+                 and not step.get("violations")
+                 and all(step["snapshot"].get(key) == steps[index - 1]["snapshot"].get(key) for key in keys))
+        if quiet and index + 1 < len(steps) and not steps[index + 1].get("violations"):
+            folded += 1
+            continue
+        if folded:
+            table.add_row("", "", f"··· {folded} ticks, no shown change", *[""] * len(keys), "")
+            folded = 0
         move = Move.from_json(step["move"]) if step["move"] else None
         label = (move.label + ("*" if move.injected else "")) if move else "init"
         events = [event["name"] + (": " + event["detail"] if event["detail"] else "")
-                  for event in step["events"]]
+                  for event in step["events"]
+                  if not (compact and (event["name"] in ROUTINE_EVENTS or event["name"] == getattr(move, "name", None)))]
         table.add_row(str(step["step"]), str(step["t_ms"]), "\n".join([label] + events),
                       *[str(step["snapshot"].get(key, "")) for key in keys],
                       ", ".join(step.get("violations", [])))
     console.print(table)
-    console.print("* = injected")
+    console.print("* = injected" + (" · heartbeat send/deliver events hidden; full trace in the JSON and UI" if compact else ""))
+
+
+def scenario_script(model, name):
+    """A named scenario from the model's module (core-ref SCENARIOS) as a scripted-scheduler list."""
+    scenarios = getattr(sys.modules.get(type(model).__module__), "SCENARIOS", None)
+    if scenarios is None and name == "bms-fault-basic":
+        return [{"tick_index": 0, "t_ms": 0, "move": Move("bms_fault").to_json()}]
+    if not scenarios or name not in scenarios:
+        raise ValueError(f"unknown scenario {name!r}; have {sorted(scenarios or [])}")
+    return [{"tick_index": t_ms // TICK_MS, "t_ms": t_ms, "move": move.to_json()}
+            for t_ms, move in scenarios[name][1]]
 
 
 def replay_cex(cex, sut=None, horizon_ms=None):
@@ -185,9 +225,19 @@ def _execute(args):
         return 0
     if args.command == "check":
         bounds = Bounds(args.depth, args.injections, args.horizon_ms)
-        model = load_model(args.model, sut=args.sut, bounds=bounds)
+        options = {}
+        if args.only:
+            options["injections"] = tuple(name.strip() for name in args.only.split(",") if name.strip())
+        model = load_model(args.model, sut=args.sut, bounds=bounds, **options)
+        if args.only:
+            offered = [item["name"] for item in model.describe()["injectables"]]
+            unknown = sorted(set(options["injections"]) - set(offered))
+            if unknown or not options["injections"]:
+                raise ValueError(f"--only: unknown injections {unknown}; the model offers {offered}")
         console.print(f"{model.name} · depth ≤ {bounds.max_depth} moves · "
                       f"horizon {bounds.horizon_ms} ms · ≤ {bounds.max_injections} injections · BFS")
+        if args.only:
+            console.print(f"Injections limited to: {', '.join(options['injections'])}")
         for assumption in model.assumptions:
             console.print(assumption)
         with Progress(SpinnerColumn(), BarColumn(), TextColumn("{task.description}"), console=console,
@@ -217,7 +267,11 @@ def _execute(args):
         console.print(f"{inv['id']} {inv['name']} violated at t={cex['violated_at_ms']} ms")
         if cex["violation_duration_ms"] is not None:
             console.print(f"Duration {cex['violation_duration_ms']} ms · budget {inv['bound_ms']} ms")
-        show_trace(cex["trace"])
+        try:
+            describe = load_model(cex["model"]["name"], sut=cex["sut"]["id"]).describe()
+        except (ValueError, KeyError, TypeError):
+            describe = {}
+        show_trace(cex["trace"], display_keys(describe, [inv.get("timer_key")]))
         if cex.get("explanation"):
             console.print(cex["explanation"])
         return 1
@@ -226,14 +280,14 @@ def _execute(args):
         model = load_model(args.model, sut=args.sut, bounds=bounds)
         scheduler = SeededScheduler(args.seed)
         if args.scenario:
-            scheduler = ScriptedScheduler([{"tick_index": 0, "t_ms": 0,
-                                             "move": Move("bms_fault").to_json()}])
+            scheduler = ScriptedScheduler(scenario_script(model, args.scenario))
         run = simulate(model, scheduler, args.horizon_ms)
         if args.scenario and run.skipped_moves:
-            raise ValueError("bms-fault-basic requires an enabled bms_fault injection at init")
-        console.print(f"{model.name} · {model.describe()['sut']['id']} · seed {args.seed} · "
-                      f"horizon {args.horizon_ms} ms")
-        show_trace(run.steps)
+            raise ValueError(f"scenario {args.scenario} has moves this model/SUT does not enable")
+        describe = model.describe()
+        console.print(f"{model.name} · {describe['sut']['id']} · seed {args.seed} · "
+                      f"horizon {args.horizon_ms} ms" + (f" · scenario {args.scenario}" if args.scenario else ""))
+        show_trace(run.steps, display_keys(describe, [inv.timer_key for inv in model.invariants]))
         show_results(run.invariants)
         if args.json:
             write_json(args.json, run.to_json())
