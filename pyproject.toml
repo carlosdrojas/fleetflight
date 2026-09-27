@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fleetflight"
+version = "0.1.0"
+description = "Pre-release verification for distributed battery firmware: bounded model checking, deterministic replay, generated regressions."
+readme = "README.md"
+requires-python = ">=3.12"
+# rich is used only by the CLI (see sessions/_common.md). It is a runtime dependency so that
+# `pip install -e .` gives a working `fleetflight` command; the checker, model and simulator are stdlib only.
+dependencies = ["rich>=13"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "rich>=13", "jsonschema>=4.18"]
+
+[project.scripts]
+fleetflight = "fleetflight.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

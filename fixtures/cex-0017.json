@@ -1,0 +1,511 @@
+{
+  "_fixture": true,
+  "schema": "fleetflight/counterexample@1",
+  "id": "cex-0017",
+  "model": {
+    "name": "core-ref",
+    "version": "0.0-fixture",
+    "hash": "sha256:d518669da72b"
+  },
+  "sut": {
+    "id": "firmware-ref@v0.3.1",
+    "name": "firmware-ref",
+    "version": "v0.3.1"
+  },
+  "invariant": {
+    "id": "I1",
+    "name": "FAULT_SHUTDOWN_BOUNDED",
+    "description": "If the BMS is FAULTED, the inverter stops discharging within 500 ms.",
+    "formula": "G( bms=FAULTED ∧ inv=DISCHARGING → (t − i1_since_ms) ≤ 500 )",
+    "bound_ms": 500,
+    "timer_key": "i1_since_ms"
+  },
+  "violated_at_ms": 650,
+  "violation_duration_ms": 550,
+  "bounds": {
+    "max_depth": 60,
+    "max_injections": 3,
+    "horizon_ms": 3000
+  },
+  "search": {
+    "strategy": "bfs",
+    "minimal": true,
+    "depth": 16,
+    "states_explored": 12345,
+    "transitions": 67890,
+    "wall_s": 1.5
+  },
+  "assumptions": [
+    "ASSUMED bus latency <= 800 ms; messages may be delayed, dropped, duplicated or reordered",
+    "ASSUMED BMS FAULT message is edge-triggered; status heartbeat every 2000 ms",
+    "ASSUMED inverter holds last setpoint 1000 ms without a hub command, then IDLE",
+    "ASSUMED hub boot takes 400 ms and clears its RX buffer",
+    "ASSUMED shutdown budget 500 ms",
+    "OUT OF SCOPE hardware interlocks (contactors, hardwired BMS trip)"
+  ],
+  "trace": [
+    {
+      "step": 0,
+      "t_ms": 0,
+      "move": null,
+      "snapshot": {
+        "t_ms": 0,
+        "bms": "HEALTHY",
+        "bus": "",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 3
+      },
+      "events": []
+    },
+    {
+      "step": 1,
+      "t_ms": 50,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 50,
+        "bms": "HEALTHY",
+        "bus": "",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 3
+      },
+      "events": []
+    },
+    {
+      "step": 2,
+      "t_ms": 100,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 100,
+        "bms": "HEALTHY",
+        "bus": "",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 3
+      },
+      "events": []
+    },
+    {
+      "step": 3,
+      "t_ms": 100,
+      "move": {
+        "name": "bms_fault",
+        "args": {},
+        "injected": true,
+        "label": "bms_fault"
+      },
+      "snapshot": {
+        "t_ms": 100,
+        "bms": "FAULTED",
+        "bus": "fault#1 bms→hub @100",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 2
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "name": "bms_fault",
+          "detail": "bms_fault",
+          "injected": true
+        },
+        {
+          "t_ms": 100,
+          "name": "send",
+          "detail": "fault#1 bms→hub",
+          "injected": false
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "t_ms": 100,
+      "move": {
+        "name": "bus_delay",
+        "args": {
+          "msg": "fault#1",
+          "extra_ms": 400
+        },
+        "injected": true,
+        "label": "bus_delay(msg=fault#1, extra_ms=400)"
+      },
+      "snapshot": {
+        "t_ms": 100,
+        "bms": "FAULTED",
+        "bus": "fault#1 bms→hub @500",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 1
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "name": "bus_delay",
+          "detail": "bus_delay(msg=fault#1, extra_ms=400)",
+          "injected": true
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "t_ms": 150,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 150,
+        "bms": "FAULTED",
+        "bus": "fault#1 bms→hub @500",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 1
+      },
+      "events": []
+    },
+    {
+      "step": 6,
+      "t_ms": 200,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 200,
+        "bms": "FAULTED",
+        "bus": "fault#1 bms→hub @500",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 1
+      },
+      "events": []
+    },
+    {
+      "step": 7,
+      "t_ms": 200,
+      "move": {
+        "name": "hub_restart",
+        "args": {},
+        "injected": true,
+        "label": "hub_restart"
+      },
+      "snapshot": {
+        "t_ms": 200,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [
+        {
+          "t_ms": 200,
+          "name": "hub_restart",
+          "detail": "hub_restart",
+          "injected": true
+        },
+        {
+          "t_ms": 200,
+          "name": "drop",
+          "detail": "fault#1 (hub RX buffer cleared)",
+          "injected": false
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "t_ms": 250,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 250,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": []
+    },
+    {
+      "step": 9,
+      "t_ms": 300,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 300,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": []
+    },
+    {
+      "step": 10,
+      "t_ms": 350,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 350,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": []
+    },
+    {
+      "step": 11,
+      "t_ms": 400,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 400,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": []
+    },
+    {
+      "step": 12,
+      "t_ms": 450,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 450,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": []
+    },
+    {
+      "step": 13,
+      "t_ms": 500,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 500,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": []
+    },
+    {
+      "step": 14,
+      "t_ms": 550,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 550,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": []
+    },
+    {
+      "step": 15,
+      "t_ms": 600,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 600,
+        "bms": "FAULTED",
+        "bus": "resume#2 hub→inv @650",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [
+        {
+          "t_ms": 600,
+          "name": "hub_boot",
+          "detail": "restores seq41 from NVM, sends resume#2",
+          "injected": false
+        }
+      ]
+    },
+    {
+      "step": 16,
+      "t_ms": 650,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 650,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [
+        {
+          "t_ms": 650,
+          "name": "deliver",
+          "detail": "resume#2 → inv (watchdog refreshed)",
+          "injected": false
+        }
+      ],
+      "violations": [
+        "I1"
+      ]
+    }
+  ],
+  "moves": [
+    {
+      "tick_index": 2,
+      "t_ms": 100,
+      "move": {
+        "name": "bms_fault",
+        "args": {},
+        "injected": true,
+        "label": "bms_fault"
+      }
+    },
+    {
+      "tick_index": 2,
+      "t_ms": 100,
+      "move": {
+        "name": "bus_delay",
+        "args": {
+          "msg": "fault#1",
+          "extra_ms": 400
+        },
+        "injected": true,
+        "label": "bus_delay(msg=fault#1, extra_ms=400)"
+      }
+    },
+    {
+      "tick_index": 4,
+      "t_ms": 200,
+      "move": {
+        "name": "hub_restart",
+        "args": {},
+        "injected": true,
+        "label": "hub_restart"
+      }
+    }
+  ],
+  "ticks": 13,
+  "trace_hash": "sha256:655e9bbe414bedbb30261296543711802919ac4257b6f798da9376b4ba612d64",
+  "explanation": "FIXTURE. Fault message lost across a hub restart; hub resumes the NVM command.",
+  "replay": {
+    "command": "fleetflight replay --counterexample cex-0017"
+  }
+}

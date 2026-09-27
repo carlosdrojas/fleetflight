@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fleetflight.local/schemas/run-list.schema.json",
+  "title": "Run index (GET /api/runs)",
+  "description": "Built by `serve` from the check reports in out/. Newest first when created_at exists, else by run_id.",
+  "type": "object",
+  "required": ["schema", "runs"],
+  "properties": {
+    "_fixture": { "$ref": "common.schema.json#/$defs/fixture" },
+    "schema": { "const": "fleetflight/run-list@1" },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_id", "model", "sut", "verdict", "states", "wall_s", "counterexamples"],
+        "properties": {
+          "run_id": { "type": "string" },
+          "created_at": { "type": "string" },
+          "model": { "type": "string" },
+          "sut": { "type": "string", "description": "SUT id." },
+          "verdict": { "$ref": "common.schema.json#/$defs/result" },
+          "states": { "type": "integer", "minimum": 0 },
+          "wall_s": { "type": "number", "minimum": 0 },
+          "counterexamples": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/cexId" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

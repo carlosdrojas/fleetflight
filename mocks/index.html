@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FleetFlight Mock</title>
+<style>
+:root{
+  --bg:#f6f5f1; --panel:#ffffff; --ink:#1b1d21; --muted:#6b6f78; --line:#e3e1db;
+  --ok:#1f8a4c; --ok-bg:#e3f4ea; --bad:#c2352b; --bad-bg:#fbe6e3; --warn:#b7791f; --warn-bg:#fdf1dc;
+  --blue:#2f6fd6; --blue-bg:#e2ecfb; --gray:#8a8f98; --gray-bg:#eceef1; --accent:#3a3fd8;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111317; --panel:#1a1d23; --ink:#e8e9ec; --muted:#9aa0aa; --line:#2b2f37;
+    --ok:#4cc27f; --ok-bg:#16301f; --bad:#ff6b5e; --bad-bg:#3a1a17; --warn:#e8b04a; --warn-bg:#352a14;
+    --blue:#6ea1ff; --blue-bg:#18263f; --gray:#8a8f98; --gray-bg:#262a31; --accent:#8b8fff;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111317; --panel:#1a1d23; --ink:#e8e9ec; --muted:#9aa0aa; --line:#2b2f37;
+  --ok:#4cc27f; --ok-bg:#16301f; --bad:#ff6b5e; --bad-bg:#3a1a17; --warn:#e8b04a; --warn-bg:#352a14;
+  --blue:#6ea1ff; --blue-bg:#18263f; --gray:#8a8f98; --gray-bg:#262a31; --accent:#8b8fff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+h1 span{color:var(--muted);font-weight:500}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
+.tag{font:600 11px/1 var(--mono);padding:4px 7px;border-radius:5px;background:var(--warn-bg);color:var(--warn);letter-spacing:.04em}
+.sub{color:var(--muted);margin:0 0 20px;max-width:760px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:500 13px var(--mono);background:var(--panel);color:var(--ink);border:0;padding:8px 12px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px}
+.verdict{font:600 13px var(--mono);padding:6px 10px;border-radius:6px}
+.pass{background:var(--ok-bg);color:var(--ok)} .fail{background:var(--bad-bg);color:var(--bad)}
+.note{color:var(--muted);font-size:13.5px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:12px}
+td.m,code,.m{font-family:var(--mono);font-size:12.5px}
+.pill{font:600 11px var(--mono);padding:2px 7px;border-radius:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:12px var(--mono);padding:4px 8px;border-radius:5px;background:var(--gray-bg);color:var(--ink)}
+.chip b{color:var(--warn);font-weight:600}
+.ladder{display:flex;gap:0;flex-wrap:wrap}
+.rung{flex:1;min-width:120px;padding:10px;border:1px solid var(--line);margin-right:-1px;font-size:13px}
+.rung:first-child{border-radius:8px 0 0 8px}.rung:last-child{border-radius:0 8px 8px 0}
+.rung.on{background:var(--ok-bg);border-color:var(--ok)}
+.rung small{display:block;color:var(--muted);font:11px var(--mono)}
+.svgbox{overflow-x:auto}
+svg text{font-family:var(--mono);font-size:11px;fill:var(--ink)}
+svg .lbl{font-size:12px;font-weight:600}
+svg .muted{fill:var(--muted)}
+.stats{display:flex;flex-wrap:wrap;gap:22px;margin-top:4px}
+.stat b{display:block;font:600 20px var(--mono)}
+.stat span{color:var(--muted);font-size:12px}
+pre{margin:0;font:12.5px/1.55 var(--mono);background:var(--gray-bg);padding:12px;border-radius:8px;overflow-x:auto;white-space:pre}
+.ci{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.ci:last-child{border:0}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.ci .r{margin-left:auto;color:var(--muted);font:12px var(--mono)}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:12px var(--mono)}
+.flow span{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.flow i{color:var(--muted);font-style:normal}
+.flow .hi{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>FleetFlight <span>· pre-release verification for battery firmware</span></h1>
+  <span class="tag">MOCK · ALL NUMBERS ILLUSTRATIVE</span>
+</header>
+<p class="sub">Model the system. Break the assumptions. Replay the failure. The model <code>core-ref</code> is a
+reference BMS ↔ Hub ↔ Inverter implementation we wrote. It is not Base Gen 3.</p>
+
+<div class="panel">
+  <h2>Pipeline</h2>
+  <div class="flow">
+    <span>spec + invariants</span><i>→</i><span class="hi">model checker (BFS)</span><i>→</i><span>counterexample</span><i>→</i>
+    <span class="hi">deterministic replay</span><i>→</i><span>fix</span><i>→</i><span>regression test</span><i>→</i><span>CI gate</span>
+  </div>
+  <p class="note" style="margin:10px 0 0">The checker and the simulator run the same transition functions, so a counterexample is an event list the simulator executes directly. Nothing gets translated between them.</p>
+</div>
+
+<div class="panel">
+  <div class="controls">
+    <strong>System under test</strong>
+    <div class="seg" id="ver">
+      <button data-v="v031" aria-pressed="true">v0.3.1 · original</button>
+      <button data-v="v032" aria-pressed="false">v0.3.2 · hub fix</button>
+      <button data-v="v033" aria-pressed="false">v0.3.3 · local fallback</button>
+    </div>
+    <span id="verdict" class="verdict fail">I1 FAIL</span>
+  </div>
+  <h2 style="margin-top:6px">Counterexample cex-0017 · replayed against <span id="vname">v0.3.1</span></h2>
+  <div class="svgbox"><svg id="lane" viewBox="0 0 1040 300" width="100%" style="min-width:720px"></svg></div>
+  <p class="note" id="story"></p>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>Invariants · <span id="vname2">v0.3.1</span></h2>
+    <table id="inv"><thead><tr><th>ID</th><th>Property</th><th>Result</th></tr></thead><tbody></tbody></table>
+    <div class="stats">
+      <div class="stat"><b id="st-states">1,284,511</b><span>states explored</span></div>
+      <div class="stat"><b>≤ 40</b><span>ticks × 100 ms</span></div>
+      <div class="stat"><b id="st-time">41.2 s</b><span>wall time</span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Trace</h2>
+    <table id="trace"><thead><tr><th>t (ms)</th><th>Event</th><th>Effect</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Stated assumptions (in every report)</h2>
+  <div class="chips">
+    <span class="chip"><b>ASSUMED</b> bus latency ≤ 800 ms</span>
+    <span class="chip"><b>ASSUMED</b> delay · drop · dup · reorder</span>
+    <span class="chip"><b>ASSUMED</b> BMS fault msg edge-triggered, heartbeat 2 s</span>
+    <span class="chip"><b>ASSUMED</b> hub boot 400 ms</span>
+    <span class="chip"><b>ASSUMED</b> shutdown budget 500 ms</span>
+    <span class="chip"><b>OUT OF SCOPE</b> hardware interlocks</span>
+  </div>
+  <p class="note" style="margin:12px 0 0">A proof only covers the model. If real latency can reach 2 s, this result says nothing about it. Validating the model against firmware, HIL and telemetry is a separate job, and we list it as roadmap.</p>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>Generated regression test</h2>
+<pre># AUTO-GENERATED from cex-0017
+@pytest.mark.fleetflight(invariant="I1", origin="cex-0017")
+def test_cex_0017_stale_command_after_hub_restart():
+    r = replay(load_model("core-ref"), [
+        ("bms_fault", {}),
+        ("bus_delay", {"msg": "m_fault", "extra_ms": 400}),
+        ("hub_restart", {}),
+    ], horizon_ms=4000, seed=8841)
+    assert r.invariants_ok, r.explain()
+    assert "m_resume" not in r.sent_messages</pre>
+  </div>
+  <div class="panel">
+    <h2>CI · firmware PR #212</h2>
+    <div class="ci"><span class="dot" id="ci1"></span>fleetflight-verify / regress<span class="r" id="ci1r"></span></div>
+    <div class="ci"><span class="dot" id="ci2"></span>fleetflight-verify / check<span class="r" id="ci2r"></span></div>
+    <div class="ci"><span class="dot" style="background:var(--ok)"></span>unit tests<span class="r">412 passed</span></div>
+    <p class="note" style="margin:12px 0 0">Fast lane: replay every stored counterexample, in under 10 s, and block the merge on failure. Slow lane: a bounded check of all invariants against the PR's code.</p>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Model fidelity ladder · built vs roadmap</h2>
+  <div class="ladder">
+    <div class="rung on"><strong>Behavioral model</strong><small>BUILT · hackathon</small></div>
+    <div class="rung"><strong>PLECS / SIL</strong><small>ROADMAP</small></div>
+    <div class="rung"><strong>HIL · RT Box</strong><small>ROADMAP</small></div>
+    <div class="rung"><strong>Physical Gen 3</strong><small>ROADMAP</small></div>
+  </div>
+  <p class="note" style="margin:12px 0 0">PLECS checks whether the power system behaves correctly. FleetFlight checks whether the software does when async components, comms, faults and timing interact. Higher-fidelity backends plug in behind the same model interface.</p>
+</div>
+
+</div>
+<script>
+const C = {
+  HEALTHY:['--ok-bg','--ok'], FAULTED:['--bad-bg','--bad'],
+  ONLINE:['--ok-bg','--ok'], RESTARTING:['--warn-bg','--warn'], DEGRADED:['--warn-bg','--warn'],
+  DISCHARGING:['--blue-bg','--blue'], SHUTDOWN:['--gray-bg','--gray'], IDLE:['--gray-bg','--gray']
+};
+const common = {
+  BMS: [[0,100,'HEALTHY'],[100,1000,'FAULTED']],
+};
+const V = {
+  v031:{
+    name:'v0.3.1', pass:false, states:'1,284,511', time:'41.2 s',
+    Hub:[[0,200,'ONLINE'],[200,600,'RESTARTING'],[600,1000,'ONLINE']],
+    Inverter:[[0,1000,'DISCHARGING']],
+    msgs:[{id:'m_fault',from:['BMS',100],to:['Hub',200],drop:true},{id:'m_resume seq41',from:['Hub',600],to:['Inverter',650]}],
+    viol:[600,1000], marks:[],
+    story:'The hub restarts while the fault message is in flight, so its RX buffer is cleared and the fault is lost. On boot it restores seq 41 from NVM and resends DISCHARGE. The inverter is still discharging 600 ms after the fault.',
+    trace:[[0,'init','inv DISCHARGING 5 kW (seq41)'],[100,'bms_fault*','BMS → FAULTED, sends m_fault'],[100,'bus_delay* +400','m_fault due at 500'],[200,'hub_restart*','m_fault dropped'],[600,'hub_boot','resends seq41 from NVM'],[650,'deliver','inverter keeps discharging'],[700,'✗ I1','600 ms > 500 ms']],
+    I1:['FAIL','cex-0017']
+  },
+  v032:{
+    name:'v0.3.2', pass:false, states:'1,291,040', time:'41.9 s',
+    Hub:[[0,200,'ONLINE'],[200,600,'RESTARTING'],[600,1000,'DEGRADED']],
+    Inverter:[[0,650,'DISCHARGING'],[650,1000,'SHUTDOWN']],
+    msgs:[{id:'m_fault',from:['BMS',100],to:['Hub',200],drop:true},{id:'STOP epoch=2',from:['Hub',600],to:['Inverter',650]}],
+    viol:[600,650], marks:[],
+    story:'The hub-side fix removes the resurrection. The hub now boots DEGRADED and sends STOP. The same sequence still fails, though: shutdown takes 550 ms because the 400 ms hub boot alone uses up the budget. No change to the hub can fix this.',
+    trace:[[0,'init','inv DISCHARGING 5 kW (seq41)'],[100,'bms_fault*','BMS → FAULTED'],[100,'bus_delay* +400','m_fault due at 500'],[200,'hub_restart*','m_fault dropped'],[600,'hub_boot','DEGRADED, sends STOP'],[650,'deliver','inverter SHUTDOWN'],[650,'✗ I1','550 ms > 500 ms']],
+    I1:['FAIL','cex-0017 (550 ms)']
+  },
+  v033:{
+    name:'v0.3.3', pass:true, states:'1,301,877', time:'43.0 s',
+    Hub:[[0,200,'ONLINE'],[200,600,'RESTARTING'],[600,1000,'DEGRADED']],
+    Inverter:[[0,400,'DISCHARGING'],[400,1000,'SHUTDOWN']],
+    msgs:[{id:'m_fault',from:['BMS',100],to:['Hub',200],drop:true}],
+    viol:null, marks:[[400,'Inverter','hub-loss timeout 200 ms']],
+    story:'The fix moves into the inverter: it shuts down after 200 ms without a hub heartbeat. cex-0017 passes at 300 ms and the full check passes. Trade-off: every hub restart now idles the inverter for about 400 ms. Safety cannot depend on a component that can restart.',
+    trace:[[0,'init','inv DISCHARGING 5 kW (seq41)'],[100,'bms_fault*','BMS → FAULTED'],[100,'bus_delay* +400','m_fault due at 500'],[200,'hub_restart*','m_fault dropped'],[400,'inv timeout','no hub heartbeat, SHUTDOWN'],[600,'hub_boot','DEGRADED, awaits BMS status'],[700,'✓ I1','300 ms ≤ 500 ms']],
+    I1:['PASS','worst case 300 ms']
+  }
+};
+const INV = [
+  ['I1','BMS FAULTED ⇒ inverter not discharging within 500 ms'],
+  ['I2','BMS UNKNOWN ⇒ no high-power operation'],
+  ['I3','Hub restart never resurrects expired commands'],
+  ['I4','Duplicate commands are idempotent'],
+  ['I5','Comms loss ⇒ safe fallback within 1.5 s'],
+];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const lanes = ['BMS','Bus','Hub','Inverter'];
+const X0=110, W=900, LH=58, Y0=28;
+const x = t => X0 + t/1000*W;
+const ly = l => Y0 + lanes.indexOf(l)*LH;
+
+function draw(key){
+  const v = V[key], s = document.getElementById('lane');
+  let h = '';
+  // grid
+  for(let t=0;t<=1000;t+=100){
+    h+=`<line x1="${x(t)}" y1="${Y0-8}" x2="${x(t)}" y2="${Y0+LH*4-10}" stroke="${css('--line')}"/>`;
+    h+=`<text x="${x(t)}" y="${Y0+LH*4+6}" text-anchor="middle" class="muted">${t}</text>`;
+  }
+  h+=`<text x="${X0+W}" y="${Y0+LH*4+22}" text-anchor="end" class="muted">t (ms)</text>`;
+  // budget line
+  h+=`<line x1="${x(600)}" y1="${Y0-14}" x2="${x(600)}" y2="${Y0+LH*4-10}" stroke="${css('--bad')}" stroke-dasharray="4 4"/>`;
+  h+=`<text x="${x(600)+4}" y="${Y0-16}" style="fill:${css('--bad')}">shutdown deadline (fault + 500 ms)</text>`;
+  // violation band
+  if(v.viol){
+    h+=`<rect x="${x(v.viol[0])}" y="${ly('Inverter')-4}" width="${x(v.viol[1])-x(v.viol[0])}" height="${LH-14}" fill="${css('--bad')}" opacity=".18"/>`;
+  }
+  lanes.forEach(l=>{
+    h+=`<text x="8" y="${ly(l)+24}" class="lbl">${l}</text>`;
+    const segs = l==='BMS'?common.BMS : v[l];
+    if(!segs){ h+=`<line x1="${X0}" y1="${ly(l)+20}" x2="${X0+W}" y2="${ly(l)+20}" stroke="${css('--line')}" stroke-width="2"/>`; return; }
+    segs.forEach(([a,b,st])=>{
+      const [bg,fg]=C[st];
+      h+=`<rect x="${x(a)+1}" y="${ly(l)+6}" width="${x(b)-x(a)-2}" height="28" rx="5" fill="${css(bg)}" stroke="${css(fg)}"/>`;
+      if(x(b)-x(a)>70) h+=`<text x="${x(a)+8}" y="${ly(l)+24}" style="fill:${css(fg)};font-weight:600">${st}</text>`;
+    });
+  });
+  // messages
+  v.msgs.forEach(m=>{
+    const x1=x(m.from[1]), y1=ly(m.from[0])+34, x2=x(m.to[1]), y2=ly(m.to[0])+6;
+    const col = m.drop?css('--bad'):css('--accent');
+    h+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1.8" ${m.drop?'stroke-dasharray="5 4"':''}/>`;
+    if(m.drop){ h+=`<text x="${x2}" y="${y2+4}" text-anchor="middle" style="fill:${col};font-size:16px;font-weight:700">✕</text>`; }
+    else { h+=`<circle cx="${x2}" cy="${y2}" r="3.5" fill="${col}"/>`; }
+    h+=`<text x="${(x1+x2)/2+6}" y="${(y1+y2)/2}" style="fill:${col}">${m.id}${m.drop?' (dropped on restart)':''}</text>`;
+  });
+  v.marks.forEach(([t,l,txt])=>{
+    h+=`<circle cx="${x(t)}" cy="${ly(l)+20}" r="5" fill="${css('--ok')}"/>`;
+    h+=`<text x="${x(t)+8}" y="${ly(l)+50}" style="fill:${css('--ok')}">${txt}</text>`;
+  });
+  // injected markers
+  [[100,'BMS','bms_fault*'],[200,'Hub','hub_restart*']].forEach(([t,l,txt])=>{
+    h+=`<text x="${x(t)+3}" y="${ly(l)+2}" class="muted">${txt}</text>`;
+  });
+  s.innerHTML = h;
+
+  document.getElementById('vname').textContent = v.name;
+  document.getElementById('vname2').textContent = v.name;
+  document.getElementById('story').textContent = v.story;
+  const vd = document.getElementById('verdict');
+  vd.className = 'verdict ' + (v.pass?'pass':'fail');
+  vd.textContent = v.pass ? 'ALL INVARIANTS PASS' : 'I1 FAIL · cex-0017';
+  document.getElementById('st-states').textContent = v.states;
+  document.getElementById('st-time').textContent = v.time;
+  document.querySelector('#inv tbody').innerHTML = INV.map(([id,p])=>{
+    const [r,d] = id==='I1' ? v.I1 : ['PASS',''];
+    return `<tr><td class="m">${id}</td><td>${p}${d?`<div class="note m">${d}</div>`:''}</td><td><span class="pill ${r==='PASS'?'pass':'fail'}">${r}</span></td></tr>`;
+  }).join('');
+  document.querySelector('#trace tbody').innerHTML = v.trace.map(([t,e,f])=>
+    `<tr><td class="m">${t}</td><td class="m">${e}</td><td>${f}</td></tr>`).join('');
+  const ok = v.pass;
+  document.getElementById('ci1').style.background = css(ok?'--ok':'--bad');
+  document.getElementById('ci1r').textContent = ok ? '23 counterexamples replayed · 7 s' : 'cex-0017 FAIL · 7 s';
+  document.getElementById('ci2').style.background = css(ok?'--ok':'--bad');
+  document.getElementById('ci2r').textContent = ok ? '5 invariants · 1.30M states · 44 s' : 'I1 violated · 42 s';
+}
+document.querySelectorAll('#ver button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#ver button').forEach(o=>o.setAttribute('aria-pressed', o===b));
+  draw(b.dataset.v);
+}));
+draw('v031');
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+  draw(document.querySelector('#ver button[aria-pressed="true"]').dataset.v);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fleetflight.local/schemas/common.schema.json",
+  "title": "FleetFlight shared definitions",
+  "$defs": {
+    "fixture": {
+      "description": "Present and true ONLY in hand-written fixtures. Real output never has it. The UI shows a MOCK DATA badge when it is true.",
+      "type": "boolean"
+    },
+    "hash": {
+      "description": "sha256:<hex>. Trace hashes are full 64 hex; model hashes are 12 hex. Display the first 12 hex chars.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{12,64}$"
+    },
+    "cexId": { "type": "string", "pattern": "^cex-[0-9a-f]{4,}$" },
+    "tMs": {
+      "description": "Model time in integer milliseconds, a multiple of TICK_MS (50).",
+      "type": "integer",
+      "minimum": 0,
+      "multipleOf": 50
+    },
+    "argValue": { "type": ["integer", "string"] },
+    "move": {
+      "description": "core.Move.to_json(). TICK is {name:'tick', args:{}, injected:false}.",
+      "type": "object",
+      "required": ["name", "args", "injected"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "args": { "type": "object", "additionalProperties": { "$ref": "#/$defs/argValue" } },
+        "injected": { "type": "boolean" },
+        "label": { "type": "string", "description": "Derived display form, e.g. bus_delay(msg=fault#1, extra_ms=400)." }
+      },
+      "additionalProperties": false
+    },
+    "snapshot": {
+      "description": "core Model.snapshot(): flat, values str|int|null. Always has t_ms.",
+      "type": "object",
+      "required": ["t_ms"],
+      "properties": { "t_ms": { "$ref": "#/$defs/tMs" } },
+      "additionalProperties": { "type": ["string", "integer", "null"] }
+    },
+    "traceEvent": {
+      "type": "object",
+      "required": ["t_ms", "name", "detail", "injected"],
+      "properties": {
+        "t_ms": { "$ref": "#/$defs/tMs" },
+        "name": { "type": "string" },
+        "detail": { "type": "string" },
+        "injected": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "modelRef": {
+      "type": "object",
+      "required": ["name", "version", "hash"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "hash": { "$ref": "#/$defs/hash" }
+      },
+      "additionalProperties": false
+    },
+    "sutRef": {
+      "type": "object",
+      "required": ["id", "name", "version"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+$", "description": "name@version, e.g. firmware-ref@v0.3.1" },
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "bounds": {
+      "type": "object",
+      "required": ["max_depth", "max_injections", "horizon_ms"],
+      "properties": {
+        "max_depth": { "type": "integer", "minimum": 0 },
+        "max_injections": { "type": "integer", "minimum": 0 },
+        "horizon_ms": { "$ref": "#/$defs/tMs" }
+      },
+      "additionalProperties": false
+    },
+    "assumption": {
+      "description": "Starts with a tag: 'ASSUMED ' or 'OUT OF SCOPE '.",
+      "type": "string",
+      "pattern": "^(ASSUMED|OUT OF SCOPE) \\S"
+    },
+    "invariantDef": {
+      "description": "core.Invariant.to_json().",
+      "type": "object",
+      "required": ["id", "name", "description", "formula", "bound_ms", "timer_key"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z][0-9]+$" },
+        "name": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+        "description": { "type": "string" },
+        "formula": { "type": "string" },
+        "bound_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "timer_key": { "type": ["string", "null"], "description": "Snapshot key holding the t_ms the bounded condition started, or null when it doesn't hold." }
+      },
+      "additionalProperties": false
+    },
+    "result": { "enum": ["PASS", "FAIL"] },
+    "traceStep": {
+      "description": "One state on a path. Step 0 is init (move null, no events).",
+      "type": "object",
+      "required": ["step", "t_ms", "move", "snapshot", "events"],
+      "properties": {
+        "step": { "type": "integer", "minimum": 0 },
+        "t_ms": { "$ref": "#/$defs/tMs" },
+        "move": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/move" }], "description": "The move that produced this state." },
+        "snapshot": { "$ref": "#/$defs/snapshot" },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/traceEvent" } },
+        "violations": {
+          "description": "Ids of invariants that do not hold in this state (omitted or empty if none).",
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "scriptedMove": {
+      "description": "An injected move and when it happens: after exactly tick_index TICKs (t_ms = tick_index * TICK_MS). Several injections may share a tick_index; they apply in list order.",
+      "type": "object",
+      "required": ["tick_index", "t_ms", "move"],
+      "properties": {
+        "tick_index": { "type": "integer", "minimum": 0 },
+        "t_ms": { "$ref": "#/$defs/tMs" },
+        "move": { "$ref": "#/$defs/move" }
+      },
+      "additionalProperties": false
+    },
+    "window": {
+      "description": "A maximal stretch where an invariant's timer_key is non-null. end_ms null = still open at the end of the run.",
+      "type": "object",
+      "required": ["start_ms", "end_ms", "duration_ms", "open"],
+      "properties": {
+        "start_ms": { "$ref": "#/$defs/tMs" },
+        "end_ms": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/tMs" }] },
+        "duration_ms": { "type": "integer", "minimum": 0, "description": "end_ms - start_ms, or last t_ms - start_ms if open." },
+        "open": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

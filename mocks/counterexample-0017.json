@@ -1,0 +1,40 @@
+{
+  "_note": "MOCK artifact. All values illustrative. Model is a reference implementation, not Base Gen 3.",
+  "id": "cex-0017",
+  "model": "core-ref",
+  "model_hash": "sha256:9c1e4b7a0f2d",
+  "sut": "hub-manager-ref@v0.3.1",
+  "invariant": "I1 FAULT_SHUTDOWN_BOUNDED",
+  "property": "G( bms=FAULTED -> inv!=DISCHARGING within 500ms )",
+  "violated_at_ms": 700,
+  "violation_duration_ms": 600,
+  "search": {
+    "strategy": "bfs",
+    "minimal": true,
+    "depth": 8,
+    "states_explored": 1284511,
+    "transitions": 3902207,
+    "wall_s": 41.2
+  },
+  "assumptions": [
+    "bus.latency_ms <= 800",
+    "bus may delay, drop, duplicate, reorder",
+    "BMS FAULT message is edge-triggered; status heartbeat every 2000 ms",
+    "inverter holds last setpoint 1000 ms without hub command, then IDLE",
+    "hardware interlocks OUT OF SCOPE"
+  ],
+  "trace": [
+    {"step": 0, "t_ms": 0,   "event": "init",              "state": {"bms": "HEALTHY", "hub": "ONLINE",     "inv": "DISCHARGING", "inv_cmd": "seq41 DISCHARGE 5kW"}},
+    {"step": 1, "t_ms": 100, "event": "bms_fault",         "injected": true,  "state": {"bms": "FAULTED"}, "emits": "m_fault bms->hub"},
+    {"step": 2, "t_ms": 100, "event": "bus_delay",         "injected": true,  "args": {"msg": "m_fault", "extra_ms": 400}},
+    {"step": 3, "t_ms": 200, "event": "hub_restart",       "injected": true,  "state": {"hub": "RESTARTING", "hub_epoch": 2}, "drops": ["m_fault"]},
+    {"step": 4, "t_ms": 600, "event": "hub_boot_complete", "state": {"hub": "ONLINE"}, "emits": "m_resume hub->inv (seq41 from NVM)"},
+    {"step": 5, "t_ms": 650, "event": "deliver",           "args": {"msg": "m_resume"}, "state": {"inv": "DISCHARGING", "inv_last_cmd_ms": 650}},
+    {"step": 6, "t_ms": 700, "event": "tick",              "violation": "bms=FAULTED & inv=DISCHARGING for 600ms > 500ms"}
+  ],
+  "replay": {
+    "command": "fleetflight replay --counterexample cex-0017",
+    "seed": 8841,
+    "trace_hash": "sha256:3f0a77c2e519"
+  }
+}

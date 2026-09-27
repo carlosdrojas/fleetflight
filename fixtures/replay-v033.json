@@ -1,0 +1,1211 @@
+{
+  "_fixture": true,
+  "schema": "fleetflight/replay-result@1",
+  "counterexample": "cex-0017",
+  "model": {
+    "name": "core-ref",
+    "version": "0.0-fixture",
+    "hash": "sha256:d518669da72b"
+  },
+  "sut": {
+    "id": "firmware-ref@v0.3.3",
+    "name": "firmware-ref",
+    "version": "v0.3.3"
+  },
+  "cex_sut": "firmware-ref@v0.3.1",
+  "same_sut": false,
+  "horizon_ms": 2000,
+  "steps": [
+    {
+      "step": 0,
+      "t_ms": 0,
+      "move": null,
+      "snapshot": {
+        "t_ms": 0,
+        "bms": "HEALTHY",
+        "bus": "",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 3
+      },
+      "events": [],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 1,
+      "t_ms": 50,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 50,
+        "bms": "HEALTHY",
+        "bus": "",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 3
+      },
+      "events": [],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 2,
+      "t_ms": 100,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 100,
+        "bms": "HEALTHY",
+        "bus": "",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 3
+      },
+      "events": [],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 3,
+      "t_ms": 100,
+      "move": {
+        "name": "bms_fault",
+        "args": {},
+        "injected": true,
+        "label": "bms_fault"
+      },
+      "snapshot": {
+        "t_ms": 100,
+        "bms": "FAULTED",
+        "bus": "fault#1 bms→hub @100",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 2
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "name": "bms_fault",
+          "detail": "bms_fault",
+          "injected": true
+        },
+        {
+          "t_ms": 100,
+          "name": "send",
+          "detail": "fault#1 bms→hub",
+          "injected": false
+        }
+      ],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 4,
+      "t_ms": 100,
+      "move": {
+        "name": "bus_delay",
+        "args": {
+          "msg": "fault#1",
+          "extra_ms": 400
+        },
+        "injected": true,
+        "label": "bus_delay(msg=fault#1, extra_ms=400)"
+      },
+      "snapshot": {
+        "t_ms": 100,
+        "bms": "FAULTED",
+        "bus": "fault#1 bms→hub @500",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 1
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "name": "bus_delay",
+          "detail": "bus_delay(msg=fault#1, extra_ms=400)",
+          "injected": true
+        }
+      ],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 5,
+      "t_ms": 150,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 150,
+        "bms": "FAULTED",
+        "bus": "fault#1 bms→hub @500",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 1
+      },
+      "events": [],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 6,
+      "t_ms": 200,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 200,
+        "bms": "FAULTED",
+        "bus": "fault#1 bms→hub @500",
+        "hub": "ONLINE",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 1
+      },
+      "events": [],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 7,
+      "t_ms": 200,
+      "move": {
+        "name": "hub_restart",
+        "args": {},
+        "injected": true,
+        "label": "hub_restart"
+      },
+      "snapshot": {
+        "t_ms": 200,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [
+        {
+          "t_ms": 200,
+          "name": "hub_restart",
+          "detail": "hub_restart",
+          "injected": true
+        },
+        {
+          "t_ms": 200,
+          "name": "drop",
+          "detail": "fault#1 (hub RX buffer cleared)",
+          "injected": false
+        }
+      ],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 8,
+      "t_ms": 250,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 250,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 9,
+      "t_ms": 300,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 300,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 10,
+      "t_ms": 350,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 350,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "DISCHARGING 5000W seq41",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": 100,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": true,
+      "diff": []
+    },
+    {
+      "step": 11,
+      "t_ms": 400,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 400,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "SHUTDOWN",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [
+        {
+          "t_ms": 400,
+          "name": "inv_timeout",
+          "detail": "no hub heartbeat for 200 ms → SHUTDOWN",
+          "injected": false
+        }
+      ],
+      "match": false,
+      "diff": [
+        "i1_since_ms",
+        "inv"
+      ]
+    },
+    {
+      "step": 12,
+      "t_ms": 450,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 450,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "SHUTDOWN",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": false,
+      "diff": [
+        "i1_since_ms",
+        "inv"
+      ]
+    },
+    {
+      "step": 13,
+      "t_ms": 500,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 500,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "SHUTDOWN",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": false,
+      "diff": [
+        "i1_since_ms",
+        "inv"
+      ]
+    },
+    {
+      "step": 14,
+      "t_ms": 550,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 550,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "RESTARTING",
+        "inv": "SHUTDOWN",
+        "nvm": "seq41 DISCHARGE 5000W",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": false,
+      "diff": [
+        "i1_since_ms",
+        "inv"
+      ]
+    },
+    {
+      "step": 15,
+      "t_ms": 600,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 600,
+        "bms": "FAULTED",
+        "bus": "stop#2 hub→inv @650",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [
+        {
+          "t_ms": 600,
+          "name": "hub_boot",
+          "detail": "boots DEGRADED, sends stop#2",
+          "injected": false
+        }
+      ],
+      "match": false,
+      "diff": [
+        "bus",
+        "hub",
+        "i1_since_ms",
+        "inv",
+        "nvm"
+      ]
+    },
+    {
+      "step": 16,
+      "t_ms": 650,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 650,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [
+        {
+          "t_ms": 650,
+          "name": "deliver",
+          "detail": "stop#2 → inv",
+          "injected": false
+        }
+      ],
+      "match": false,
+      "diff": [
+        "hub",
+        "i1_since_ms",
+        "inv",
+        "nvm"
+      ]
+    },
+    {
+      "step": 17,
+      "t_ms": 700,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 700,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 18,
+      "t_ms": 750,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 750,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 19,
+      "t_ms": 800,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 800,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 20,
+      "t_ms": 850,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 850,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 21,
+      "t_ms": 900,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 900,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 22,
+      "t_ms": 950,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 950,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 23,
+      "t_ms": 1000,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1000,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 24,
+      "t_ms": 1050,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1050,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 25,
+      "t_ms": 1100,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1100,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 26,
+      "t_ms": 1150,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1150,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 27,
+      "t_ms": 1200,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1200,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 28,
+      "t_ms": 1250,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1250,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 29,
+      "t_ms": 1300,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1300,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 30,
+      "t_ms": 1350,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1350,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 31,
+      "t_ms": 1400,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1400,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 32,
+      "t_ms": 1450,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1450,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 33,
+      "t_ms": 1500,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1500,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 34,
+      "t_ms": 1550,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1550,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 35,
+      "t_ms": 1600,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1600,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 36,
+      "t_ms": 1650,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1650,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 37,
+      "t_ms": 1700,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1700,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 38,
+      "t_ms": 1750,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1750,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 39,
+      "t_ms": 1800,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1800,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 40,
+      "t_ms": 1850,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1850,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 41,
+      "t_ms": 1900,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1900,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 42,
+      "t_ms": 1950,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 1950,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    },
+    {
+      "step": 43,
+      "t_ms": 2000,
+      "move": {
+        "name": "tick",
+        "args": {},
+        "injected": false,
+        "label": "tick"
+      },
+      "snapshot": {
+        "t_ms": 2000,
+        "bms": "FAULTED",
+        "bus": "",
+        "hub": "DEGRADED",
+        "inv": "SHUTDOWN",
+        "nvm": "",
+        "i1_since_ms": null,
+        "i5_since_ms": null,
+        "injections_left": 0
+      },
+      "events": [],
+      "match": null,
+      "diff": []
+    }
+  ],
+  "compared_steps": 17,
+  "matched_steps": 11,
+  "first_divergence": 11,
+  "trace_hash": "sha256:812a16711effce5cf3f05ce03ac885aa7f49a0eab142c513e385ca1a1e91c90b",
+  "expected_trace_hash": "sha256:655e9bbe414bedbb30261296543711802919ac4257b6f798da9376b4ba612d64",
+  "hash_match": false,
+  "full_trace_hash": "sha256:d0a978082ed39a29798fa2184d8e039dc0c98531635e976769d7a29a6e1f5834",
+  "skipped_moves": [],
+  "invariants": [
+    {
+      "id": "I1",
+      "name": "FAULT_SHUTDOWN_BOUNDED",
+      "result": "PASS",
+      "first_violation_ms": null,
+      "max_window": {
+        "start_ms": 100,
+        "end_ms": 400,
+        "duration_ms": 300,
+        "open": false
+      }
+    },
+    {
+      "id": "I2",
+      "name": "NO_HIGH_POWER_WHEN_UNKNOWN",
+      "result": "PASS",
+      "first_violation_ms": null,
+      "max_window": null
+    },
+    {
+      "id": "I3",
+      "name": "NO_RESURRECTED_COMMANDS",
+      "result": "PASS",
+      "first_violation_ms": null,
+      "max_window": null
+    },
+    {
+      "id": "I4",
+      "name": "IDEMPOTENT_COMMANDS",
+      "result": "PASS",
+      "first_violation_ms": null,
+      "max_window": null
+    },
+    {
+      "id": "I5",
+      "name": "COMMS_LOSS_SAFE_FALLBACK",
+      "result": "PASS",
+      "first_violation_ms": null,
+      "max_window": null
+    }
+  ],
+  "violation_window_ms": {
+    "invariant": "I1",
+    "start_ms": 100,
+    "end_ms": 400,
+    "duration_ms": 300,
+    "open": false,
+    "bound_ms": 500,
+    "over_budget_ms": -200
+  },
+  "verdict": "PASS"
+}

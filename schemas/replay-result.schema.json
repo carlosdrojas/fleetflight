@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fleetflight.local/schemas/replay-result.schema.json",
+  "title": "Replay result (POST /api/replay, fleetflight replay --json)",
+  "description": "A counterexample's moves replayed through the model against a (possibly different) SUT. The run applies the scripted moves, then keeps TICKing until horizon_ms. Steps 0..len(cex.trace)-1 are compared with the counterexample; trace_hash covers exactly those steps so it is comparable with the counterexample's trace_hash.",
+  "type": "object",
+  "required": ["schema", "counterexample", "model", "sut", "cex_sut", "same_sut", "horizon_ms", "steps", "compared_steps", "matched_steps", "first_divergence", "trace_hash", "expected_trace_hash", "hash_match", "full_trace_hash", "skipped_moves", "invariants", "violation_window_ms", "verdict"],
+  "properties": {
+    "_fixture": { "$ref": "common.schema.json#/$defs/fixture" },
+    "schema": { "const": "fleetflight/replay-result@1" },
+    "counterexample": { "$ref": "common.schema.json#/$defs/cexId" },
+    "model": { "$ref": "common.schema.json#/$defs/modelRef" },
+    "sut": { "$ref": "common.schema.json#/$defs/sutRef", "description": "The SUT this replay ran against." },
+    "cex_sut": { "type": "string", "description": "SUT id the counterexample was found against." },
+    "same_sut": { "type": "boolean", "description": "sut.id == cex_sut. If true, every compared step is expected to match." },
+    "horizon_ms": { "$ref": "common.schema.json#/$defs/tMs" },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "allOf": [{ "$ref": "common.schema.json#/$defs/traceStep" }],
+        "properties": {
+          "match": { "type": ["boolean", "null"], "description": "Snapshot and move equal to the counterexample's step with the same index; null beyond the counterexample's length." },
+          "diff": { "type": "array", "items": { "type": "string" }, "description": "Snapshot keys that differ from the counterexample (empty when match is true or null)." }
+        },
+        "required": ["match", "diff"]
+      }
+    },
+    "compared_steps": { "type": "integer", "minimum": 0, "description": "min(len(steps), len(cex.trace))." },
+    "matched_steps": { "type": "integer", "minimum": 0 },
+    "first_divergence": { "type": ["integer", "null"], "description": "Index of the first compared step with match=false, or null." },
+    "trace_hash": { "$ref": "common.schema.json#/$defs/hash", "description": "core.trace_hash over steps[0:compared_steps]." },
+    "expected_trace_hash": { "$ref": "common.schema.json#/$defs/hash", "description": "The counterexample's trace_hash." },
+    "hash_match": { "type": "boolean" },
+    "full_trace_hash": { "$ref": "common.schema.json#/$defs/hash", "description": "core.trace_hash over all steps (up to horizon). Used by --repeat." },
+    "skipped_moves": {
+      "description": "Scripted moves that were not enabled when their turn came (the SUT changed behavior). They are skipped, never forced.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tick_index", "move", "reason"],
+        "properties": {
+          "tick_index": { "type": "integer", "minimum": 0 },
+          "move": { "$ref": "common.schema.json#/$defs/move" },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "result", "first_violation_ms", "max_window"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "result": { "$ref": "common.schema.json#/$defs/result" },
+          "first_violation_ms": { "type": ["integer", "null"] },
+          "max_window": { "oneOf": [{ "type": "null" }, { "$ref": "common.schema.json#/$defs/window" }], "description": "Longest timer window in the run (bounded invariants only)." }
+        },
+        "additionalProperties": false
+      }
+    },
+    "violation_window_ms": {
+      "description": "For the counterexample's invariant: its longest timer window in this run, against its bound. Drives the 'fault to stop' bars. null if the invariant is unbounded or the condition never started.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["invariant", "start_ms", "end_ms", "duration_ms", "open", "bound_ms", "over_budget_ms"],
+          "properties": {
+            "invariant": { "type": "string" },
+            "start_ms": { "$ref": "common.schema.json#/$defs/tMs" },
+            "end_ms": { "oneOf": [{ "type": "null" }, { "$ref": "common.schema.json#/$defs/tMs" }] },
+            "duration_ms": { "type": "integer", "minimum": 0 },
+            "open": { "type": "boolean" },
+            "bound_ms": { "type": "integer", "minimum": 0 },
+            "over_budget_ms": { "type": "integer", "description": "duration_ms - bound_ms. Negative = headroom." }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "verdict": { "$ref": "common.schema.json#/$defs/result", "description": "PASS iff every invariant PASSes over the whole run." }
+  },
+  "additionalProperties": false
+}

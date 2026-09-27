@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fleetflight.local/schemas/check-report.schema.json",
+  "title": "Check report (out/check-<run_id>.json, GET /api/runs/<run_id>, fleetflight check --json)",
+  "description": "Result of one bounded model check. PASS means: holds in every reachable state within bounds. Two runs of the same model+SUT+bounds are identical except run_id, created_at and wall-time fields.",
+  "type": "object",
+  "required": ["schema", "run_id", "model", "sut", "bounds", "strategy", "assumptions", "stats", "invariants", "verdict"],
+  "properties": {
+    "_fixture": { "$ref": "common.schema.json#/$defs/fixture" },
+    "schema": { "const": "fleetflight/check-report@1" },
+    "run_id": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$" },
+    "created_at": { "type": "string", "description": "Optional ISO-8601 wall-clock time. Informational; not deterministic." },
+    "model": { "$ref": "common.schema.json#/$defs/modelRef" },
+    "sut": { "$ref": "common.schema.json#/$defs/sutRef" },
+    "bounds": { "$ref": "common.schema.json#/$defs/bounds" },
+    "strategy": { "enum": ["bfs"] },
+    "assumptions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/assumption" } },
+    "stats": {
+      "type": "object",
+      "required": ["states", "transitions", "max_depth_reached", "wall_s", "new_states_per_depth", "complete"],
+      "properties": {
+        "states": { "type": "integer", "minimum": 0, "description": "Distinct states discovered (including init)." },
+        "transitions": { "type": "integer", "minimum": 0, "description": "apply() calls." },
+        "max_depth_reached": { "type": "integer", "minimum": 0 },
+        "wall_s": { "type": "number", "minimum": 0 },
+        "states_per_s": { "type": "number", "minimum": 0 },
+        "new_states_per_depth": {
+          "description": "new_states_per_depth[d] = states first discovered at depth d (index 0 = init = 1).",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "complete": { "type": "boolean", "description": "True if every state within bounds was explored (no early stop)." }
+      },
+      "additionalProperties": false
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description", "formula", "bound_ms", "timer_key", "result", "counterexample", "violated_at_ms", "violation_duration_ms", "depth"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "formula": { "type": "string" },
+          "bound_ms": { "type": ["integer", "null"] },
+          "timer_key": { "type": ["string", "null"] },
+          "result": { "$ref": "common.schema.json#/$defs/result" },
+          "counterexample": { "oneOf": [{ "type": "null" }, { "$ref": "common.schema.json#/$defs/cexId" }], "description": "Set iff result is FAIL." },
+          "violated_at_ms": { "type": ["integer", "null"] },
+          "violation_duration_ms": { "type": ["integer", "null"] },
+          "depth": { "type": ["integer", "null"], "description": "Counterexample length in moves." },
+          "worst_case_ms": { "type": ["integer", "null"], "description": "Optional, for bounded invariants that PASS: the largest timer value seen in any explored state." }
+        },
+        "additionalProperties": false
+      }
+    },
+    "counterexample_files": {
+      "description": "Relative file names written next to this report, e.g. cex-1a2b3c4d.json.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "notes": { "type": "array", "items": { "type": "string" }, "description": "Optional free-text observations (e.g. trade-offs)." },
+    "verdict": { "$ref": "common.schema.json#/$defs/result", "description": "PASS iff every invariant PASSes." }
+  },
+  "additionalProperties": false
+}

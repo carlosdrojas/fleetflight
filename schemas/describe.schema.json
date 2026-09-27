@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fleetflight.local/schemas/describe.schema.json",
+  "title": "Model description (Model.describe(), GET /api/describe, fleetflight describe --json)",
+  "type": "object",
+  "required": ["schema", "model", "sut", "sut_versions", "tick_ms", "components", "injectables", "invariants", "assumptions", "bounds", "constants", "snapshot_keys"],
+  "properties": {
+    "_fixture": { "$ref": "common.schema.json#/$defs/fixture" },
+    "schema": { "const": "fleetflight/describe@1" },
+    "model": { "$ref": "common.schema.json#/$defs/modelRef" },
+    "sut": { "$ref": "common.schema.json#/$defs/sutRef" },
+    "sut_versions": {
+      "description": "Every SUT id this model can run against, oldest first. The UI Versions screen replays one counterexample against each.",
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "tick_ms": { "const": 50 },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "owner", "states", "description"],
+        "properties": {
+          "id": { "type": "string", "description": "Matches a snapshot key where one exists (bms, bus, hub, inv)." },
+          "name": { "type": "string" },
+          "owner": { "enum": ["model", "sut"], "description": "model = environment we simulate; sut = logic under test." },
+          "states": { "type": "array", "items": { "type": "string" } },
+          "description": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "injectables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "params"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "params": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "values"],
+              "properties": {
+                "name": { "type": "string" },
+                "values": {
+                  "description": "Finite domain, or a symbolic description such as 'any in-flight message id'.",
+                  "oneOf": [{ "type": "array", "items": { "$ref": "common.schema.json#/$defs/argValue" } }, { "type": "string" }]
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "invariants": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/invariantDef" } },
+    "assumptions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/assumption" } },
+    "bounds": { "$ref": "common.schema.json#/$defs/bounds" },
+    "constants": {
+      "description": "Named model/SUT constants shown on the Spec screen, e.g. LATENCY_MAX_MS, HUB_BOOT_MS.",
+      "type": "object",
+      "additionalProperties": { "$ref": "common.schema.json#/$defs/argValue" }
+    },
+    "snapshot_keys": {
+      "description": "Snapshot keys in display order. lane=true keys become swimlanes.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "lane"],
+        "properties": {
+          "key": { "type": "string" },
+          "label": { "type": "string" },
+          "lane": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

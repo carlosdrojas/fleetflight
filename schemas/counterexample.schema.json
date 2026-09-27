@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fleetflight.local/schemas/counterexample.schema.json",
+  "title": "Counterexample (out/<id>.json, GET /api/cex/<id>)",
+  "description": "A minimal path from init to a state violating one invariant. `moves` + `ticks` is the whole path: replay applies, for k = 0..ticks, every move with tick_index == k in order, then TICK if k < ticks. `trace` is the full expanded path with a snapshot per step.",
+  "type": "object",
+  "required": ["schema", "id", "model", "sut", "invariant", "violated_at_ms", "violation_duration_ms", "bounds", "search", "assumptions", "trace", "moves", "ticks", "trace_hash"],
+  "properties": {
+    "_fixture": { "$ref": "common.schema.json#/$defs/fixture" },
+    "schema": { "const": "fleetflight/counterexample@1" },
+    "id": { "$ref": "common.schema.json#/$defs/cexId" },
+    "model": { "$ref": "common.schema.json#/$defs/modelRef" },
+    "sut": { "$ref": "common.schema.json#/$defs/sutRef" },
+    "invariant": { "$ref": "common.schema.json#/$defs/invariantDef" },
+    "violated_at_ms": { "$ref": "common.schema.json#/$defs/tMs" },
+    "violation_duration_ms": {
+      "description": "For bounded invariants: t_ms - snapshot[timer_key] at the violating (last) step. null otherwise.",
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "bounds": { "$ref": "common.schema.json#/$defs/bounds" },
+    "search": {
+      "type": "object",
+      "required": ["strategy", "minimal", "depth", "states_explored", "transitions", "wall_s"],
+      "properties": {
+        "strategy": { "enum": ["bfs"] },
+        "minimal": { "type": "boolean", "description": "True when found by BFS: no shorter path (in moves) violates this invariant." },
+        "depth": { "type": "integer", "minimum": 0, "description": "Number of moves on the path = len(trace) - 1." },
+        "states_explored": { "type": "integer", "minimum": 0, "description": "Distinct states discovered when this counterexample was found." },
+        "transitions": { "type": "integer", "minimum": 0 },
+        "wall_s": { "type": "number", "minimum": 0, "description": "Not deterministic; excluded from determinism comparisons." }
+      },
+      "additionalProperties": false
+    },
+    "assumptions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/assumption" } },
+    "trace": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "common.schema.json#/$defs/traceStep" },
+      "description": "trace[0] is init (move null). trace[i].move produced trace[i].snapshot. The last step violates the invariant."
+    },
+    "moves": {
+      "description": "Only the injected moves, in path order, with their tick index. This is what replay and regression tests consume.",
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/scriptedMove" }
+    },
+    "ticks": { "type": "integer", "minimum": 0, "description": "Number of TICK moves on the path. violated_at_ms == ticks * TICK_MS." },
+    "trace_hash": { "$ref": "common.schema.json#/$defs/hash", "description": "core.trace_hash over [(move, snapshot)] of `trace`." },
+    "explanation": { "type": "string", "description": "Optional human summary (root pattern). Never required for replay." },
+    "replay": {
+      "type": "object",
+      "properties": { "command": { "type": "string" } },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,29 @@
+# MOCK: CI job that gates firmware / hub-manager PRs.
+name: fleetflight-verify
+on:
+  pull_request:
+    paths: ["hub-manager/**", "models/**", "fleetflight/**"]
+
+jobs:
+  regress:
+    # Fast lane: replay every stored counterexample (< 10 s). Blocks merge.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -e .
+      - run: fleetflight regress --all --junit out/regress.xml
+
+  check:
+    # Slow lane: bounded model check of all invariants against the PR's SUT.
+    runs-on: ubuntu-latest
+    needs: regress
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -e .
+      - run: fleetflight check --model core-ref --sut hub-manager --depth 40 --json out/check.json
+      - run: fleetflight report out/check.json --markdown >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: counterexamples
+          path: out/cex-*.json
