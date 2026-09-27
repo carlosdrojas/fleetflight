@@ -170,7 +170,7 @@ function SystemDiagram({ comps }: { comps: Component[] }) {
                 ))}
               </div>
               <span className="mono" style={{ fontSize: 10.5, color: sut ? "var(--warn)" : "var(--muted)", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {sut ? "system under test" : c.owner === "model" ? "environment model" : c.owner ?? ""}
+                {sut ? "under test" : c.owner === "model" ? "environment" : c.owner ?? ""}
               </span>
             </div>
             {i < comps.length - 1 && <span aria-hidden="true" style={{ width: 22, flexShrink: 0, borderTop: "1.5px dashed var(--accent)" }} />}

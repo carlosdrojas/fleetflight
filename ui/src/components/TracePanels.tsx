@@ -112,7 +112,7 @@ export function StatePanel({ trace, index, keys, note }: { trace: TraceStep[]; i
         {keys.map((k) => {
           const v = s.snapshot?.[k.key];
           return [
-            <span key={`k${k.key}`} className="k">
+            <span key={`k${k.key}`} className="k" title={k.label}>
               {k.label}
             </span>,
             <span key={`v${k.key}`} className={`v${changed.has(k.key) ? " changed" : ""}`} title={changed.has(k.key) ? `changed from ${str(trace[index - 1]?.snapshot?.[k.key]) || "∅"}` : undefined}>

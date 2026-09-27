@@ -92,6 +92,17 @@ const api = process.env.FF_API;
 export default defineConfig({
   base: "./",
   plugins: [react(), ...(api ? [] : [fixtureApi()])],
-  server: api ? { proxy: { "/api": { target: api, changeOrigin: true } } } : {},
+  server: api
+    ? {
+        proxy: {
+          "/api": {
+            target: api,
+            changeOrigin: true,
+            // serve rejects cross-origin POST /api/replay; present the dev page as same-origin.
+            configure: (proxy) => proxy.on("proxyReq", (req) => req.setHeader("origin", api)),
+          },
+        },
+      }
+    : {},
   build: { outDir: "dist", emptyOutDir: true },
 });

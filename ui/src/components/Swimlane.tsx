@@ -45,6 +45,7 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
 
   const lastT = stepT(trace[trace.length - 1]);
   const timerKey = invariant?.timer_key || null;
+  const invId = invariant?.id ?? null;
   const bound = num(invariant?.bound_ms);
   const windows = useMemo(() => (timerKey ? timerWindows(trace, timerKey) : []), [trace, timerKey]);
   // The window live at the violating (last) step sets the deadline.
@@ -209,9 +210,13 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
                 );
               })}
               {/* violation hatch on the lanes the invariant talks about */}
-              {deadline !== null && violT !== null && violT > deadline && (hot.size === 0 || hot.has(l.key)) && (
-                <rect x={x(deadline)} y={y + RECT_Y} width={Math.max(2, x(violT) - x(deadline))} height={RECT_H} fill="url(#ff-hatch)" pointerEvents="none" />
-              )}
+              {deadline !== null && violT !== null && violT >= deadline && (hot.size === 0 || hot.has(l.key)) &&
+                (violT > deadline ? (
+                  <rect x={x(deadline)} y={y + RECT_Y} width={x(violT) - x(deadline)} height={RECT_H} fill="url(#ff-hatch)" pointerEvents="none" />
+                ) : (
+                  // Strict bound (e.g. "< 500"): the violation is the instant the window reaches the bound.
+                  <rect x={x(violT) - 3} y={y + RECT_Y - 2} width={6} height={RECT_H + 4} rx={2} fill="#FF6B57" pointerEvents="none" />
+                ))}
             </g>
           );
         })}
@@ -235,14 +240,16 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
               const end = w.end_ms;
               const okEnd = bound !== null ? Math.min(end, w.start_ms + bound) : end;
               const dur = end - w.start_ms;
-              const over = bound !== null && dur > bound;
+              // Whether the window breaks the invariant comes from the trace's own verdict (the formula may be < or ≤).
+              const violatedHere = invId !== null && (trace[w.lastStep]?.violations ?? []).includes(invId);
+              const over = bound !== null && (dur > bound || violatedHere);
               return (
                 <g key={wi}>
                   <title>{`${timerKey}: ${w.start_ms}–${end} ms (${dur} ms${w.open ? ", still open" : ""})${bound !== null ? ` · budget ${bound} ms` : ""}`}</title>
                   <rect x={x(w.start_ms)} y={timerY + 12} width={Math.max(2, x(okEnd) - x(w.start_ms))} height={20} rx={4} fill="#2F4A7A" />
-                  {over && <rect x={x(w.start_ms + (bound as number))} y={timerY + 12} width={Math.max(2, x(end) - x(w.start_ms + (bound as number)))} height={20} fill="#FF6B57" opacity={0.75} />}
+                  {over && <rect x={Math.min(x(w.start_ms + (bound as number)), x(end) - 6)} y={timerY + 12} width={Math.max(6, x(end) - x(w.start_ms + (bound as number)))} height={20} fill="#FF6B57" opacity={0.75} />}
                   <text x={x(w.start_ms) + 8} y={timerY + 26} fill="#E7EAEE" fontSize={11} fontWeight={600}>
-                    {clip(`${dur} ms${bound !== null ? (over ? ` · ${dur - bound} over budget` : ` · ${bound - dur} headroom`) : ""}`, x(end) - x(w.start_ms) + 30, 11)}
+                    {clip(`${dur} ms${bound !== null ? (dur > bound ? ` · ${dur - bound} over budget` : violatedHere ? ` · reaches the ${bound} ms bound: violated` : ` · ${bound - dur} headroom`) : ""}`, x(end) - x(w.start_ms) + 30, 11)}
                   </text>
                 </g>
               );
