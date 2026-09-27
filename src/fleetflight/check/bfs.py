@@ -125,27 +125,38 @@ def check(
     move_idx: list[int] = [-1]
 
     found: dict[int, _Found] = {}          # invariant position -> first violation
-    # Bounded invariants that have not failed: track the longest open timer (worst_case_ms).
-    worst: dict[int, int | None] = {k: None for k, inv in enumerate(invariants) if inv.timer_key}
     pending = [(k, inv.check) for k, inv in enumerate(invariants)]
-    pending_bounded = [(k, invariants[k].timer_key) for k in worst]
     transitions = 0
     new_per_depth = [1]
     next_progress = progress_every
 
-    def note_worst(state: Any) -> None:
+    # Bounded invariants: worst_case_ms is the longest *window* (CONTRACT.md §4) seen on any
+    # explored transition: a window opens when snapshot[timer_key] becomes non-null and closes
+    # at the first state where it is null again. Open windows count up to the current state.
+    # ``timers[id]`` holds the timer values of state ``id`` (one per bounded invariant).
+    bounded = [k for k, inv in enumerate(invariants) if inv.timer_key]
+    bkeys = [invariants[k].timer_key for k in bounded]
+    worst = [None] * len(bounded)
+    timers: list[tuple] = []
+
+    def timers_of(state: Any) -> tuple:
         snap = snapshot(state)
-        t = snap["t_ms"]
-        for k, key in pending_bounded:
-            since = snap.get(key)
-            if since is not None:
-                dur = t - since
-                if worst[k] is None or dur > worst[k]:
-                    worst[k] = dur
+        return tuple(snap.get(key) for key in bkeys)
+
+    def note_window(before: tuple, after: tuple, t: int) -> None:
+        for j, (b, a) in enumerate(zip(before, after)):
+            if a is not None:
+                d = t - a
+                if worst[j] is None or d > worst[j]:
+                    worst[j] = d
+            if b is not None and a != b:
+                d = t - b
+                if worst[j] is None or d > worst[j]:
+                    worst[j] = d
 
     def examine(state: Any, sid: int) -> bool:
         """Check pending invariants on a new state. Returns True if something failed."""
-        nonlocal pending, pending_bounded
+        nonlocal pending
         failed = False
         for k, chk in pending:
             if not chk(state):
@@ -153,14 +164,13 @@ def check(
                 failed = True
         if failed:
             pending = [(k, c) for k, c in pending if k not in found]
-            pending_bounded = [(k, key) for k, key in pending_bounded if k not in found]
         return failed
 
-    if pending_bounded:
-        note_worst(init)
+    if bkeys:
+        timers.append(timers_of(init))
+        note_window(timers[0], timers[0], init.t_ms)
     examine(init, 0)
-    had_invariants = bool(invariants)
-    stopped_early = had_invariants and not pending and stop_when_all_failed
+    stopped_early = bool(invariants) and not pending and stop_when_all_failed
 
     frontier_states: list[Any] = [init]
     frontier_ids: list[int] = [0]
@@ -177,13 +187,17 @@ def check(
                 n = len(parent)
                 nid = index.setdefault(s2, n)
                 if nid != n:
+                    if bkeys:
+                        note_window(timers[sid], timers[nid], s2.t_ms)
                     continue
                 parent.append(sid)
                 move_idx.append(i)
                 next_states.append(s2)
                 next_ids.append(n)
-                if pending_bounded:
-                    note_worst(s2)
+                if bkeys:
+                    tv = timers_of(s2)
+                    timers.append(tv)
+                    note_window(timers[sid], tv, s2.t_ms)
                 if pending and examine(s2, n) and not pending and stop_when_all_failed:
                     stopped_early = True
                     break
@@ -212,7 +226,8 @@ def check(
         on_progress(_progress(len(parent), transitions, stats["max_depth_reached"], 0,
                               started, invariants, found, done=True))
 
-    return _build_report(model, bounds, invariants, index, parent, move_idx, found, worst, stats,
+    return _build_report(model, bounds, invariants, index, parent, move_idx, found,
+                         dict(zip(bounded, worst)), stats,
                          run_id=run_id)
 
 

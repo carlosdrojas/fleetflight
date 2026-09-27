@@ -69,8 +69,8 @@ def test_counter_passes_everything() -> None:
     rows = by_id(report)
     assert [r["result"] for r in rows.values()] == ["PASS", "PASS", "PASS"]
     assert rows["I1"]["worst_case_ms"] is None
-    # With 2 doubles x can stay >= 6 for 150 ms:
-    assert rows["I3"]["worst_case_ms"] == 150  # 6 -tick-> 8 -double-> 6, twice, then 8 -> 0
+    # Window rule: open while x >= 6, closed at the first state where x < 6. With 2 doubles:
+    assert rows["I3"]["worst_case_ms"] == 200  # 6 -tick-> 8 -double-> 6, twice, 8, then 0 at +200
     stats = doc["stats"]
     assert stats["complete"] is True
     assert stats["new_states_per_depth"][0] == 1
