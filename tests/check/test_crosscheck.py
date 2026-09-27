@@ -10,6 +10,7 @@ import pytest
 from fleetflight.check import check
 from fleetflight.core import Bounds
 
+from .bench_model import BenchModel
 from .oracle import oracle_all_violating_lengths, oracle_check
 from .test_toy_counter import CounterModel
 from .test_toy_race import RaceModel
@@ -28,6 +29,9 @@ CASES = [
     ("timer-short-horizon", lambda b: TimerModel(b), Bounds(20, 3, 150)),
     ("timer-depth-6", lambda b: TimerModel(b), Bounds(6, 3, 600)),
     ("timer-depth-7", lambda b: TimerModel(b), Bounds(7, 3, 600)),
+    ("bench-core-shape", lambda b: BenchModel(b), Bounds(16, 2, 700)),
+    ("bench-core-shape-3inj", lambda b: BenchModel(b), Bounds(20, 3, 600)),
+    ("bench-core-shape-21k", lambda b: BenchModel(b), Bounds(24, 3, 900)),
 ]
 
 

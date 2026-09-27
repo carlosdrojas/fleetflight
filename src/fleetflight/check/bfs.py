@@ -13,6 +13,9 @@ How it works
   minimum depth: the counterexample is a shortest path in moves. Every invariant that has not
   failed yet is checked on every newly discovered state (init included).
 * A state at depth ``max_depth`` or with ``t_ms >= horizon_ms`` is checked but not expanded.
+* ``worst_case_ms`` (bounded invariants that PASS) is the longest timer *window* on any
+  explored transition, by the CONTRACT.md §4 rule: open while ``snapshot[timer_key]`` is
+  non-null, closed at the first state where it is null. It matches the replay's windows.
 * The search stops early once every invariant has a counterexample (``complete`` is then
   False). Otherwise it runs until the reachable space within bounds is exhausted, so PASS means
   "holds in every reachable state within bounds".
@@ -138,6 +141,8 @@ def check(
     bkeys = [invariants[k].timer_key for k in bounded]
     worst = [None] * len(bounded)
     timers: list[tuple] = []
+    # Windows are only reported for invariants that PASS: stop snapshotting once all failed.
+    track = bool(bkeys)
 
     def timers_of(state: Any) -> tuple:
         snap = snapshot(state)
@@ -156,7 +161,7 @@ def check(
 
     def examine(state: Any, sid: int) -> bool:
         """Check pending invariants on a new state. Returns True if something failed."""
-        nonlocal pending
+        nonlocal pending, track
         failed = False
         for k, chk in pending:
             if not chk(state):
@@ -164,9 +169,10 @@ def check(
                 failed = True
         if failed:
             pending = [(k, c) for k, c in pending if k not in found]
+            track = track and any(k not in found for k in bounded)
         return failed
 
-    if bkeys:
+    if track:
         timers.append(timers_of(init))
         note_window(timers[0], timers[0], init.t_ms)
     examine(init, 0)
@@ -187,14 +193,14 @@ def check(
                 n = len(parent)
                 nid = index.setdefault(s2, n)
                 if nid != n:
-                    if bkeys:
+                    if track:
                         note_window(timers[sid], timers[nid], s2.t_ms)
                     continue
                 parent.append(sid)
                 move_idx.append(i)
                 next_states.append(s2)
                 next_ids.append(n)
-                if bkeys:
+                if track:
                     tv = timers_of(s2)
                     timers.append(tv)
                     note_window(timers[sid], tv, s2.t_ms)
