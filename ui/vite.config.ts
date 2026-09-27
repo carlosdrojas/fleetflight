@@ -3,9 +3,10 @@ import react from "@vitejs/plugin-react";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-// Dev-only stand-in for `fleetflight serve`: answers the same /api routes from ../fixtures.
+// Dev-only stand-in for `fleetflight serve`: answers the same /api routes from ../fixtures
+// (or from FF_FIXTURES=<dir>, e.g. a checker `out/` dir plus a describe.json).
 // Set FF_API=http://127.0.0.1:8765 to proxy to the real server instead.
-const FIXTURES = resolve(import.meta.dirname, "../fixtures");
+const FIXTURES = resolve(process.env.FF_FIXTURES ?? resolve(import.meta.dirname, "../fixtures"));
 
 function loadFixtures(): Record<string, unknown>[] {
   return readdirSync(FIXTURES)
@@ -58,7 +59,20 @@ function fixtureApi(): Plugin {
         if (req.method !== "GET") return send(405, { error: "method not allowed" });
 
         if (parts[0] === "describe" && parts.length === 1) return send(200, bySchema(docs, "describe")[0]);
-        if (parts[0] === "runs" && parts.length === 1) return send(200, bySchema(docs, "run-list")[0]);
+        if (parts[0] === "runs" && parts.length === 1) {
+          const list = bySchema(docs, "run-list")[0];
+          if (list) return send(200, list);
+          // No run-list on disk (a raw out/ dir): build one from the check reports, like serve does.
+          const runs = bySchema(docs, "check-report").map((d) => {
+            const r = d as { run_id?: string; created_at?: string; model?: { name?: string }; sut?: { id?: string }; verdict?: string; stats?: { states?: number; wall_s?: number }; invariants?: { counterexample?: string | null }[] };
+            return {
+              run_id: r.run_id, created_at: r.created_at, model: r.model?.name, sut: r.sut?.id, verdict: r.verdict,
+              states: r.stats?.states, wall_s: r.stats?.wall_s,
+              counterexamples: (r.invariants ?? []).map((i) => i.counterexample).filter(Boolean),
+            };
+          });
+          return send(200, { schema: "fleetflight/run-list@1", runs });
+        }
         if (parts[0] === "runs" && parts.length === 2) {
           const hit = bySchema(docs, "check-report").find((d) => d.run_id === parts[1]);
           return hit ? send(200, hit) : send(404, { error: `no run ${parts[1]}` });

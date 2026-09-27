@@ -3,7 +3,7 @@ import { Empty, ErrorState, Loading, Result } from "../components/ui";
 import { api } from "../lib/api";
 import { href, useAsync, useFixtureFlag, useHeader } from "../lib/hooks";
 import type { CheckReport, RunRow } from "../lib/types";
-import { fmtCompact, fmtInt, fmtMs, num, sutVersion } from "../lib/trace";
+import { fmtCompact, fmtInt, fmtMs, fmtSec, num, sutVersion } from "../lib/trace";
 
 export default function ChecksScreen({ shared, runId }: { shared: Shared; runId: string | null }) {
   const rows = (shared.runs?.runs ?? []).filter((r): r is RunRow => !!r && typeof r.run_id === "string");
@@ -52,7 +52,7 @@ export default function ChecksScreen({ shared, runId }: { shared: Shared; runId:
               </span>
             </span>
             <span className="small muted mono">
-              {sutVersion(r.sut)} · {fmtCompact(r.states)} states{num(r.wall_s) !== null ? ` · ${r.wall_s} s` : ""}
+              {sutVersion(r.sut)} · {fmtCompact(r.states)} states{fmtSec(r.wall_s) ? ` · ${fmtSec(r.wall_s)}` : ""}
             </span>
           </a>
         ))}
@@ -99,7 +99,7 @@ function RunDetail({ r }: { r: CheckReport }) {
               ))}
           </div>
           <span className="muted">
-            {r.sut?.id ?? "unknown SUT"} · {num(s.wall_s) !== null ? `finished in ${s.wall_s} s` : "duration unknown"} ·{" "}
+            {r.sut?.id ?? "unknown SUT"} · {fmtSec(s.wall_s) ? `finished in ${fmtSec(s.wall_s)}` : "duration unknown"} ·{" "}
             {s.complete === true ? "every reachable state within bounds" : s.complete === false ? <span className="t-warn">search stopped early: bounds not exhausted</span> : "completeness unknown"}
           </span>
         </div>

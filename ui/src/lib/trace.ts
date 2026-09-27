@@ -222,6 +222,12 @@ export const fmtMs = (v: unknown): string => {
   return n === null ? "—" : `${n.toLocaleString("en-US")} ms`;
 };
 
+export const fmtSec = (v: unknown): string | null => {
+  const n = num(v);
+  if (n === null) return null;
+  return n >= 10 ? `${n.toFixed(1)} s` : n >= 1 ? `${n.toFixed(2)} s` : `${Math.round(n * 1000)} ms`;
+};
+
 export function fmtDuration(ms: number): string {
   if (ms >= 1000 && ms % 100 === 0) return `${ms / 1000} s`;
   return `${ms} ms`;
