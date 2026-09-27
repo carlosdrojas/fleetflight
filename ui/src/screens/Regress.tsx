@@ -125,7 +125,7 @@ function Inputs({ cex }: { cex: Counterexample }) {
           </div>
         ))}
       </div>
-      <div className="kv" style={{ gridTemplateColumns: "180px minmax(0, 1fr)" }}>
+      <div className="kv" style={{ gridTemplateColumns: "170px minmax(0, 1fr)" }}>
         <span className="k">ticks</span>
         <span>{cex.ticks ?? "—"}</span>
         <span className="k">asserts invariant</span>
@@ -134,7 +134,7 @@ function Inputs({ cex }: { cex: Counterexample }) {
         </span>
         <span className="k">formula</span>
         <span>{cex.invariant?.formula ?? "—"}</span>
-        <span className="k">expected trace (found on)</span>
+        <span className="k">expected hash</span>
         <span>{shortHash(cex.trace_hash)}</span>
       </div>
       <span className="small muted">

@@ -17,7 +17,7 @@ export default function ChecksScreen({ shared, runId }: { shared: Shared; runId:
       <section aria-label="Runs" style={{ display: "flex", gap: 10, alignItems: "stretch", overflowX: "auto", flexShrink: 0 }}>
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingRight: 6, flexShrink: 0 }}>
           <b>Runs</b>
-          <span className="small muted">{rows.length} in out/</span>
+          <span className="small muted">{rows.length} run{rows.length === 1 ? "" : "s"}</span>
         </div>
         {shared.runsError && <ErrorState title="Could not load runs" error={shared.runsError} onRetry={shared.reload} />}
         {!shared.runs && !shared.runsError && <div className="skel" style={{ width: 200, alignSelf: "center" }} />}

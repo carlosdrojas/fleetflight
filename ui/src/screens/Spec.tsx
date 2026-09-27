@@ -35,7 +35,7 @@ export default function SpecScreen({ shared }: { shared: Shared }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
         <section className="card">
           <div className="card-h">
             <b>System model</b>
@@ -169,7 +169,7 @@ function SystemDiagram({ comps }: { comps: Component[] }) {
                   </span>
                 ))}
               </div>
-              <span className="mono" style={{ fontSize: 10.5, color: sut ? "var(--warn)" : "var(--muted)", marginTop: 4 }}>
+              <span className="mono" style={{ fontSize: 10.5, color: sut ? "var(--warn)" : "var(--muted)", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {sut ? "system under test" : c.owner === "model" ? "environment model" : c.owner ?? ""}
               </span>
             </div>

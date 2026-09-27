@@ -62,13 +62,12 @@ function ReplayView({ shared, cex, cexId }: { shared: Shared; cex: Counterexampl
 
       {replay.error && <ErrorState title={`Replay against ${sutVersion(sut)} failed`} error={replay.error} onRetry={run} />}
       {replay.loading && !replay.data && <Loading lines={4} />}
-      {replay.data && <ReplayBody shared={shared} cex={cex} r={replay.data} />}
-      {replay.data && <Determinism cexId={cexId} sut={replay.data.sut?.id ?? sut} first={replay.data} />}
+      {replay.data && <ReplayBody shared={shared} cex={cex} r={replay.data} determinism={<Determinism cexId={cexId} sut={replay.data.sut?.id ?? sut} first={replay.data} />} />}
     </>
   );
 }
 
-function ReplayBody({ shared, cex, r }: { shared: Shared; cex: Counterexample; r: ReplayResult }) {
+function ReplayBody({ shared, cex, r, determinism }: { shared: Shared; cex: Counterexample; r: ReplayResult; determinism: React.ReactNode }) {
   const ctrace: TraceStep[] = (cex.trace ?? []).filter(Boolean);
   const steps = (r.steps ?? []).filter(Boolean);
   const compared = num(r.compared_steps) ?? Math.min(ctrace.length, steps.length);
@@ -125,6 +124,8 @@ function ReplayBody({ shared, cex, r }: { shared: Shared; cex: Counterexample; r
         <Column title="Checker" sub={`counterexample · ${cex.sut?.id ?? "?"}`} rows={allRows} steps={ctrace} />
         <Column title="Simulator" sub={`executes ${r.sut?.id ?? "?"} · ${r.matched_steps ?? "?"}/${compared} steps match`} rows={allRows} steps={steps} match={(i) => steps[i]?.match} diff={(i) => steps[i]?.diff ?? []} />
       </div>
+
+      {determinism}
 
       <section className="card">
         <div className="card-h">
@@ -285,7 +286,10 @@ function Determinism({ cexId, sut, first }: { cexId: string; sut: string; first:
       <section className="card card-code">
         <div className="code">
           <div>
-            <span className="p">$</span> fleetflight replay --counterexample {cexId} --sut {sutVersion(sut)} --repeat {done.length || "N"} | uniq -c
+            <span className="p">$</span> fleetflight replay --counterexample {cexId} \
+          </div>
+          <div>
+            {"    "}--sut {sutVersion(sut)} --repeat {done.length || "N"} | uniq -c
           </div>
           {done.length === 0 && <div className="p"># press Repeat to fill this in from real API responses</div>}
           {[...counts.entries()].map(([h, c]) => (

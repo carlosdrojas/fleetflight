@@ -88,10 +88,26 @@ export function StatePanel({ trace, index, keys, note }: { trace: TraceStep[]; i
         <b>State at step {index}</b>
         <span className="mono sub">t = {stepT(s)} ms</span>
         <span className="mono sub right" style={{ color: s.move?.injected ? "var(--warn)" : undefined }}>
-          {moveText(s)}
+          move: {moveText(s)}
           {s.move?.injected ? " · injected" : ""}
         </span>
       </div>
+      {(events.length > 0 || viol.length > 0 || note) && (
+        <div style={{ borderBottom: "1px solid var(--line)", paddingBottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+          {!note && viol.map((v) => (
+            <div key={v} className="mono t-fail" style={{ fontWeight: 600, fontSize: 13 }}>
+              ✕ {v} violated in this state
+            </div>
+          ))}
+          {events.map((e, i) => (
+            <div key={i} className="mono" style={{ fontSize: 13, color: e.injected ? "var(--warn)" : "var(--text2)" }}>
+              {e.injected ? "⚡ " : "→ "}
+              {e.detail || e.name}
+            </div>
+          ))}
+          {note && <div style={{ color: "var(--text2)", lineHeight: 1.5 }}>{note}</div>}
+        </div>
+      )}
       <div className="kv">
         {keys.map((k) => {
           const v = s.snapshot?.[k.key];
@@ -106,22 +122,6 @@ export function StatePanel({ trace, index, keys, note }: { trace: TraceStep[]; i
           ];
         })}
       </div>
-      {(events.length > 0 || viol.length > 0 || note) && (
-        <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-          {viol.map((v) => (
-            <div key={v} className="mono t-fail" style={{ fontWeight: 600, fontSize: 13 }}>
-              ✕ {v} violated in this state
-            </div>
-          ))}
-          {events.map((e, i) => (
-            <div key={i} className="mono" style={{ fontSize: 13, color: e.injected ? "var(--warn)" : "var(--text2)" }}>
-              {e.injected ? "⚡ " : "→ "}
-              {e.detail || e.name}
-            </div>
-          ))}
-          {note && <div style={{ color: "var(--text2)", lineHeight: 1.5 }}>{note}</div>}
-        </div>
-      )}
     </section>
   );
 }

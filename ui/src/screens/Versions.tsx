@@ -47,8 +47,11 @@ function VersionsView({ shared, cex, cexId }: { shared: Shared; cex: Counterexam
   const faultAt = firstFault && inv?.timer_key ? num(firstFault.snapshot?.[inv.timer_key]) : null;
   const durations = rows.map((r) => num(r.r?.violation_window_ms?.duration_ms)).filter((d): d is number => d !== null);
   const scaleMax = Math.max(bound ?? 0, ...durations, 1) * 1.15;
-  const ticks = niceTicks(scaleMax, 7);
-  const axisMax = Math.max(scaleMax, ticks[ticks.length - 1]);
+  const base = niceTicks(scaleMax, 7);
+  const stepMs = base.length > 1 ? base[1] - base[0] : scaleMax;
+  // Extend to the first tick at or past the data so the axis ends on a labelled tick.
+  const ticks = base[base.length - 1] >= scaleMax ? base : [...base, base[base.length - 1] + stepMs];
+  const axisMax = ticks[ticks.length - 1];
   const pct = (ms: number) => `${(Math.min(ms, axisMax) / axisMax) * 100}%`;
   const passing = rows.find((r) => r.r?.verdict === "PASS");
 
@@ -139,12 +142,12 @@ function VersionsView({ shared, cex, cexId }: { shared: Shared; cex: Counterexam
             <span />
             <div style={{ position: "relative", height: 14 }} className="mono small faint">
               {ticks.map((t) => (
-                <span key={t} style={{ position: "absolute", left: pct(t), transform: "translateX(-50%)" }}>
-                  {t}
+                <span key={t} style={{ position: "absolute", whiteSpace: "nowrap", left: pct(t), transform: t === axisMax ? "translateX(-100%)" : t === 0 ? undefined : "translateX(-50%)" }}>
+                  {t === axisMax ? `${t} ms` : t}
                 </span>
               ))}
             </div>
-            <span className="mono small faint" style={{ textAlign: "right" }}>ms</span>
+            <span />
           </div>
         </section>
       )}
@@ -156,7 +159,12 @@ function VersionsView({ shared, cex, cexId }: { shared: Shared; cex: Counterexam
             <ul style={{ margin: 0, paddingLeft: 18, color: "var(--text2)", lineHeight: 1.6 }}>
               {rows.map((row) => {
                 const r = row.r;
-                if (!r) return <li key={row.sut}>{sutVersion(row.sut)}: replay failed ({row.error}).</li>;
+                if (!r)
+                  return (
+                    <li key={row.sut}>
+                      <span className="mono">{sutVersion(row.sut)}</span>: replay failed ({row.error}).
+                    </li>
+                  );
                 const w = r.violation_window_ms;
                 const fails = (r.invariants ?? []).filter((x) => x?.result === "FAIL").map((x) => x?.id);
                 return (

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import type { InvariantDef, TraceStep } from "../lib/types";
-import { moveLane, moveText, niceTicks, num, segments, stepT, timerWindows, tone, type LaneDef, type Tone } from "../lib/trace";
+import { moveLane, moveText, niceTicks, num, segments, stepT, str, timerWindows, tone, type LaneDef, type Tone } from "../lib/trace";
 
 const TONE: Record<Tone, { fill: string; stroke: string; text: string }> = {
   fail: { fill: "#2A1614", stroke: "#FF6B57", text: "#FF8A7A" },
@@ -26,7 +26,7 @@ export interface SwimlaneProps {
 const LABEL_W = 112;
 const RIGHT = 20;
 const TOP = 30;
-const LANE_H = 54;
+const LANE_H = 50;
 const RECT_Y = 16;
 const RECT_H = 30;
 const TIMER_H = 44;
@@ -86,6 +86,28 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
     return [...groups.values()];
   }, [trace, lanes]);
 
+  const drops = useMemo(() => {
+    const out: { lane: number; t: number; token: string; why: string }[] = [];
+    trace.forEach((s, i) => {
+      if (i === 0) return;
+      for (const e of s.events ?? []) {
+        if (!/drop/i.test(e?.name ?? "")) continue;
+        const detail = e.detail ?? "";
+        const token = detail.split(/\s/)[0];
+        if (!token) continue;
+        const li = lanes.findIndex((l) => str(trace[i - 1]?.snapshot?.[l.key]).includes(token) && !str(s.snapshot?.[l.key]).includes(token));
+        if (li >= 0) out.push({ lane: li, t: stepT(s), token, why: (/\((.*)\)/.exec(detail)?.[1] ?? "") });
+      }
+    });
+    return out;
+  }, [trace, lanes]);
+
+  // Free space on the drop's lane before the next drawn segment.
+  const dropRoom = (d: { lane: number; t: number }) => {
+    const next = segs[d.lane]?.find((s) => s.start_ms > d.t && tone(s.value) !== "empty")?.start_ms;
+    return (next !== undefined ? x(next) : x1) - x(d.t) - 4;
+  };
+
   const cur = trace[Math.max(0, Math.min(cursor, trace.length - 1))];
   const cx = x(stepT(cur));
 
@@ -123,7 +145,7 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
   };
 
   return (
-    <div ref={wrap} tabIndex={0} onKeyDown={onKey} aria-label="Swimlane timeline. Use left and right arrow keys to step." style={{ outline: "none" }}>
+    <div ref={wrap} tabIndex={0} onKeyDown={onKey} className="lane-wrap" aria-label="Swimlane timeline. Use left and right arrow keys to step.">
       <svg className="lane-svg" width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={`Timeline of ${trace.length} steps across ${lanes.map((l) => l.label).join(", ")}`} onClick={pickAt}>
         <defs>
           <pattern id="ff-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -160,6 +182,7 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
               <line x1={x0} y1={y + RECT_Y + RECT_H / 2} x2={x1} y2={y + RECT_Y + RECT_H / 2} stroke="#2A3240" strokeDasharray="3 5" />
               {segs[li].map((s, si) => {
                 const tn = tone(s.value);
+                const nextStart = segs[li].slice(si + 1).find((n) => tone(n.value) !== "empty")?.start_ms;
                 if (tn === "empty") return null;
                 const c = TONE[tn];
                 const sx = x(s.start_ms);
@@ -172,6 +195,16 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
                     <text x={sx + 11} y={y + RECT_Y + 20} fill={c.text} fontSize={12} fontWeight={600}>
                       {clip(s.value, w)}
                     </text>
+                    {/* label didn't fit inside: show it after the segment if there is free room */}
+                    {clip(s.value, w) !== s.value && !drops.some((d) => d.lane === li && d.t === s.end_ms) && (() => {
+                      const room = (nextStart !== undefined ? x(nextStart) : x1) - (sx + w) - 12;
+                      const need = s.value.length * 12 * 0.61;
+                      return room > need ? (
+                        <text x={sx + w + 8} y={y + RECT_Y + 20} fill="#8C96A5" fontSize={12}>
+                          {s.value}
+                        </text>
+                      ) : null;
+                    })()}
                   </g>
                 );
               })}
@@ -222,7 +255,7 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
           <g pointerEvents="none">
             <line x1={x(deadline)} y1={12} x2={x(deadline)} y2={bottom} stroke="#FF6B57" strokeWidth={1.5} strokeDasharray="5 4" />
             <text x={x(deadline) + (x(deadline) > x1 - 260 ? -8 : 8)} y={16} fill="#FF8A7A" fontSize={11} textAnchor={x(deadline) > x1 - 260 ? "end" : "start"}>
-              deadline · {timerKey} + {bound} ms = {deadline} ms
+              deadline · {timerLabel ?? timerKey} + {bound} ms = {deadline} ms
             </text>
           </g>
         )}
@@ -244,6 +277,18 @@ export default function Swimlane({ trace, lanes, cursor, onPick, invariant, viol
             </g>
           );
         })}
+
+        {/* dropped values: a step whose event says "drop" removes a token (e.g. fault#1) from a lane */}
+        {drops.map((d, di) => (
+          <g key={`drop${di}`} pointerEvents="none">
+            <text x={x(d.t)} y={laneY(d.lane) + RECT_Y + 21} fill="#FF6B57" fontSize={17} fontWeight={700} textAnchor="middle">
+              ✕
+            </text>
+            <text x={x(d.t) + 12} y={laneY(d.lane) + RECT_Y + 20} fill="#FF8A7A" fontSize={11.5}>
+              {clip(`${d.token} dropped${d.why ? ` · ${d.why}` : ""}`, dropRoom(d), 11.5)}
+            </text>
+          </g>
+        ))}
 
         {/* replay divergence ticks */}
         {diverged &&

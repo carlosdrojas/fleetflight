@@ -40,8 +40,6 @@ function CexView({ shared, cex }: { shared: Shared; cex: Counterexample }) {
       if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || e.defaultPrevented) return;
       if (e.key === "ArrowRight") setCursor((c) => Math.min(trace.length - 1, c + 1));
       else if (e.key === "ArrowLeft") setCursor((c) => Math.max(0, c - 1));
-      else if (e.key === "Home") setCursor(0);
-      else if (e.key === "End") setCursor(trace.length - 1);
       else return;
       e.preventDefault();
     };
@@ -85,15 +83,17 @@ function CexView({ shared, cex }: { shared: Shared; cex: Counterexample }) {
             )}
           </div>
           {cex.explanation && <span className="muted">{cex.explanation}</span>}
-          <span className="muted small">{sub.join(" · ")}</span>
-          <span className="mono faint small">
-            found on {cex.sut?.id ?? "?"} · trace {shortHash(cex.trace_hash)}
-            {num(cex.search?.states_explored) !== null && ` · ${cex.search?.states_explored?.toLocaleString("en-US")} states explored`}
+          <span
+            className="muted small"
+            style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+            title={`trace ${cex.trace_hash ?? "?"}${num(cex.search?.states_explored) !== null ? ` · ${cex.search?.states_explored} states explored` : ""}`}
+          >
+            {sub.join(" · ")} · found on <span className="mono">{cex.sut?.id ?? "?"}</span> · <span className="mono">{shortHash(cex.trace_hash)}</span>
           </span>
         </div>
         <div className="ph-actions">
-          <button type="button" className="btn" onClick={download}>
-            Download .json
+          <button type="button" className="btn" onClick={download} title="Download the counterexample JSON">
+            .json
           </button>
           <a className="btn" href={href("regress", id)}>
             Regression test

@@ -88,7 +88,7 @@ h1 { margin: 0; font-family: var(--display); font-size: 26px; font-weight: 600; 
 .btn:hover { border-color: #3a4658; color: var(--text); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; padding: 0 18px; }
 .btn-primary:hover { background: var(--accent-hi); border-color: var(--accent-hi); color: var(--bg); }
-.btn:disabled { opacity: 0.5; cursor: default; }
+.btn:disabled { opacity: 0.75; cursor: default; }
 .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
 select, input[type="number"], input[type="text"] { height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line2); background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; }
 
@@ -134,7 +134,13 @@ button.tbl-row:hover { background: #171d27; }
 .lane-card { padding: 16px 20px 10px; }
 .lane-svg { display: block; font-family: var(--mono); user-select: none; }
 .lane-svg .hit { cursor: pointer; }
-.trace-list { display: flex; flex-direction: column; gap: 2px; overflow: auto; min-height: 0; flex: 1 1 0; position: relative; }
+.trace-list { display: flex; flex-direction: column; gap: 2px; overflow: auto; min-height: 0; flex: 1 1 0; position: relative; padding-bottom: 4px; }
+.lane-wrap { border-radius: 8px; }
+.lane-wrap:focus { outline: none; }
+.lane-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.trace-btn[aria-current="step"] .n { color: var(--muted); }
+main.main > * { flex-shrink: 0; }
+.code.nowrap { white-space: pre; overflow-x: auto; }
 .trace-btn { display: grid; grid-template-columns: 30px 64px minmax(150px, 230px) minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; min-height: 34px; padding: 5px 10px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text); font-size: 13px; cursor: pointer; }
 .trace-btn:hover { background: #171d27; }
 .trace-btn[aria-current="step"] { background: var(--raise); border-color: #3a4658; }
@@ -144,7 +150,7 @@ button.tbl-row:hover { background: #171d27; }
 .trace-btn .sum { color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gap-btn { font-family: var(--mono); font-size: 12px; color: var(--faint); background: transparent; border: 0; text-align: left; padding: 2px 10px 2px 50px; cursor: pointer; }
 .gap-btn:hover { color: var(--text2); }
-.kv { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 7px 16px; font-family: var(--mono); font-size: 13px; }
+.kv { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 16px; font-family: var(--mono); font-size: 13px; }
 .kv .k { color: var(--muted); }
 .kv .v { word-break: break-word; }
 .kv .changed { color: var(--warn); }
