@@ -356,9 +356,14 @@ def _safe_file(root, name):
 
 def run_list(out_dir):
     rows = []
+    seen = set()
     fixture = False
     for path in sorted(Path(out_dir).glob("check-*.json")):
         doc = read_document(_safe_file(out_dir, path.name), SCHEMA_CHECK_REPORT)
+        # A `check --json check-x.json` copy of a report also matches the glob; list each run once.
+        if doc["run_id"] in seen:
+            continue
+        seen.add(doc["run_id"])
         row = {"run_id": doc["run_id"], "model": doc["model"]["name"], "sut": doc["sut"]["id"],
                "verdict": doc["verdict"], "states": doc["stats"]["states"],
                "wall_s": doc["stats"]["wall_s"],

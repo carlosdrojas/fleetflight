@@ -64,4 +64,4 @@ expect_exit 0 "$FF" regress --from "$CEX" --out-dir tests/regress
 # Keep the original evidence alongside the generated test for version-pinned CI replay.
 cp "$CEX" "tests/regress/$(basename -- "$CEX")"
 expect_exit 0 "$PY" -m pytest tests/regress -q
-printf '\nDemo completed. Reports: %s\nReview and commit generated tests/regress files before enabling the CI gate.\n' "$RUN"
+printf "\nDemo completed. Reports: %s\nOpen the UI on these artifacts: make serve  (http://127.0.0.1:8765)\n" "$RUN"
