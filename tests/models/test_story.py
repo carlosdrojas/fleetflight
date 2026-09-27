@@ -121,3 +121,32 @@ def test_named_scenarios_match_this_file() -> None:
     assert SCENARIOS["fault-during-link-loss"][1] == FAULT_DURING_LINK_LOSS
     assert SCENARIOS["stale-reorder"][1] == STALE_REORDER
     assert SCENARIOS["restart-only"][1] == RESTART_ONLY
+
+
+@pytest.mark.parametrize("v", ["v0.3.1", "v0.3.2", "v0.3.3"])
+@pytest.mark.parametrize("losses,fails", [(4, False), (5, True)])
+def test_sensitivity_consecutive_fault_losses(v: str, losses: int, fails: bool) -> None:
+    """Review follow-up: the retransmit assumption has a limit, the same for every version.
+    The original FAULT plus 3 retransmits lost (4 losses) still passes; 5 losses fail I1."""
+    from fleetflight.core import Bounds
+
+    script = [(100, Move("bms_fault"))] + [
+        (100 * (i + 1), Move("bus_drop", (("msg", f"fault@{100 * (i + 1)}"),))) for i in range(losses)]
+    r = run_script(load_model(sut=v, bounds=Bounds(max_injections=losses + 1)), script, HORIZON)
+    assert not r.skipped
+    assert ("I1" in r.failures()) is fails
+
+
+def _ms_not_discharging_before_expiry(r) -> int:
+    return sum(50 for s, m in zip(r.states[1:], r.moves) if m.name == "tick" and s.t_ms < 3000
+               and s.inv.mode != "DISCHARGING")
+
+
+@pytest.mark.parametrize("v,restart_cost,drops_cost", [("v0.3.1", 0, 0), ("v0.3.2", 2550, 0), ("v0.3.3", 2750, 2750)])
+def test_availability_cost_of_the_fixes(v: str, restart_cost: int, drops_cost: int) -> None:
+    """Review follow-up: NO invariant covers availability, so this is a measured metric, not a
+    pass/fail. The fixes are safe but expensive in this model: after a restart the DEGRADED hub
+    never re-dispatches (not modeled), and v0.3.3's SHUTDOWN latches after 3 dropped refreshes."""
+    assert _ms_not_discharging_before_expiry(run(v, RESTART_ONLY)) == restart_cost
+    drops = [(t, Move("bus_drop", (("msg", f"cmd@{t}"),))) for t in (100, 200, 300)]
+    assert _ms_not_discharging_before_expiry(run(v, drops)) == drops_cost

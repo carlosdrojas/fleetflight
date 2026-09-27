@@ -18,7 +18,7 @@ Moves (CONTRACT.md §1): injections first, in a fixed order, then TICK.
 * ``bus_delay(msg, extra_ms)``, ``bus_drop(msg)``, ``bus_dup(msg)``: for each in-flight message.
 
 A TICK advances 50 ms and runs, in order: hub boot completion, due deliveries (by delivery
-time, then id), BMS status/retransmits, ``hub_on_tick``, ``inv_on_tick``, then the timers the
+time, then send time, then id), BMS status/retransmits, ``hub_on_tick``, ``inv_on_tick``, then the timers the
 invariants read.
 """
 from __future__ import annotations
@@ -48,7 +48,7 @@ LATENCY_BASE_MS = 50          # every message takes one tick unless the adversar
 LATENCY_MAX_MS = 800          # total latency of any message never exceeds this
 DELAY_STEPS_MS = (100, 200, 400, 700)   # 1- and 2-tick reorders + near-max latency; see status for the 100-ms-step run
 HUB_BOOT_MS = 400
-BMS_STATUS_MS = 2000          # BMS STATUS heartbeat period (sent at t = 0, 2000, 4000, ...)
+BMS_STATUS_MS = 2000          # BMS STATUS heartbeat period (sent at t = 2000, 4000, ...; one was seen before t=0)
 FAULT_RETX_MS = 100           # FAULT retransmit period until ACKed (None = single-shot)
 SHUTDOWN_BUDGET_MS = 500      # I1
 COMMS_LOSS_BUDGET_MS = 1500   # I5
@@ -84,7 +84,7 @@ class State:
     fault_acked: bool
     next_retx_ms: int | None
     link_up: bool
-    bus: tuple[BusMsg, ...]          # sorted by (due_ms, id)
+    bus: tuple[BusMsg, ...]          # sorted by (due_ms, sent_ms, id)
     # controllers (SUT-owned values; the model only calls hooks and reads mode/view)
     hub: Any                         # hub ControllerState, or None while RESTARTING
     boot_at_ms: int | None
@@ -172,7 +172,6 @@ INVARIANTS = [
 ASSUMPTIONS = [
     f"ASSUMED bus latency <= {LATENCY_MAX_MS} ms; messages may be delayed, dropped, duplicated or reordered",
     f"ASSUMED BMS FAULT message is edge-triggered and retransmitted every {FAULT_RETX_MS} ms until the hub ACKs it; status heartbeat every {BMS_STATUS_MS} ms",
-    "ASSUMED inverter holds last setpoint 1000 ms without a hub command, then IDLE (firmware-ref v0.3.1-v0.3.2; v0.3.3 shuts down after 200 ms)",
     f"ASSUMED hub boot takes {HUB_BOOT_MS} ms and clears its RX buffer; only NVM survives a restart",
     f"ASSUMED shutdown budget {SHUTDOWN_BUDGET_MS} ms (a real number would come from Base's safety requirements)",
     f"ASSUMED one dispatch at t=0: DISCHARGE {DISPATCH_WATTS} W, expires at {DISPATCH_EXPIRES_MS} ms; cloud re-dispatch after a hub restart is not modeled",
@@ -574,9 +573,7 @@ class CoreRef:
                 "HIGH_POWER_W": HIGH_POWER_W,
                 "DISPATCH_WATTS": DISPATCH_WATTS,
                 "DISPATCH_EXPIRES_MS": DISPATCH_EXPIRES_MS,
-                "HUB_REFRESH_MS": HUB_REFRESH_MS,
-                "INV_HOLD_MS": 1000,
-                "HUB_LOSS_TIMEOUT_MS": 200,
+                **dict(getattr(self.sut, "constants", {})),
             },
             "snapshot_keys": [{"key": k, "label": lbl, "lane": lane} for k, lbl, lane in SNAPSHOT_KEYS],
         }
@@ -624,4 +621,6 @@ def _on_link(b: BusMsg) -> bool:
 
 
 def _sorted(bus: list[BusMsg]) -> tuple[BusMsg, ...]:
-    return tuple(sorted(bus, key=lambda b: (b.due_ms, b.id)))
+    # Ties on due time are delivered FIFO by send time (then id). Sorting by id alone was a bug:
+    # "cmd@1100" < "cmd@900" flipped the tie order after t=1000 (found by the adversarial review).
+    return tuple(sorted(bus, key=lambda b: (b.due_ms, b.sent_ms, b.id)))

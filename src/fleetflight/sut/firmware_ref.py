@@ -118,6 +118,12 @@ class FirmwareRef:
         self.version = version
         self.boot_degraded = version >= "v0.3.2"
         self.inv_local_fallback = version >= "v0.3.3"
+        # SUT constants shown on the Spec screen (model describe() merges them in)
+        self.constants: dict[str, int] = {"HUB_REFRESH_MS": HUB_REFRESH_MS}
+        if self.inv_local_fallback:
+            self.constants["HUB_LOSS_TIMEOUT_MS"] = HUB_LOSS_TIMEOUT_MS
+        else:
+            self.constants["INV_HOLD_MS"] = INV_HOLD_MS
 
     # ---- initial states ---------------------------------------------------------------------
     def hub_init(self, nvm: HubNvm | None = None) -> HubCtl:
