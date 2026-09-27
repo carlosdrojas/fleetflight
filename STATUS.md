@@ -34,7 +34,7 @@ Max BFS depth reached: 83.
 `python -m tests.models.test_mutations` (stream 02's mini BFS, not the product checker): **6/6 mutants of v0.3.3 killed**, and every invariant I1–I5 is killed by at least one mutant. The full table is in `status/02-model.md`.
 
 ## Tests
-- `pytest -q` (Python): 168 passed before integration fixes; see the latest count in AGENTS.md → Status.
+- `pytest -q`: **160 passed** (includes the generated regression). `make test` also runs `scripts/test_automation.py`.
 - `ui`: `npm test` 23/23 and `npm run build` clean.
 - CI workflow YAML parses. It has not run on hosted Actions (no remote).
 
@@ -42,3 +42,12 @@ Max BFS depth reached: 83.
 - **"v0.3.3 idles the inverter ~X ms per hub restart."** No product command computes it. The model's tests pin an availability metric (`tests/models/test_story.py`): after a hub restart with a healthy BMS, v0.3.3 is not discharging for 2750 of the 3000 ms dispatch (v0.3.2: 2550, v0.3.1: 0). That's because re-dispatch after restart isn't modeled, so it's the rest of the dispatch, not a short blip. Quote it only with that caveat.
 - `GET /api/regress` (UI contract request 04): not built. The Regressions screen falls back to showing the counterexample's moves and CLI commands.
 - Fleet stretch (session 08): not built.
+
+## Review (07, four read-only sub-agents; each finding re-checked by the integrator)
+- **Fixed:** `check --only` with an unknown name listed the already-filtered injectables in its error message. It now lists the model's full set.
+- **Fixed (UI):** `Versions` and `stepSummary` now guard against null trace or event entries, and axis ticks are whole milliseconds (they used to show duplicate labels like `0 0 0 1 1 1` on tiny ranges).
+- **Stale:** "the regress CI job always fails on an empty corpus". The corpus is now committed (`tests/regress/cex-286e0592.json` + the generated test).
+- **Known, not changed (latent):** the model's I5 timer (`core_ref.py`, `last_rx = t` on every delivery to the inverter) also counts messages v0.3.3 rejects as stale, while the firmware's own watchdog doesn't count them. No verdict changes today: v0.3.3's own 200 ms fallback fires long before the 1500 ms I5 budget. A future SUT with a longer loss timeout could get a false I5 PASS. We left it alone so the measured numbers wouldn't move at feature freeze.
+- **Known, cosmetic:** `stats.max_depth_reached` can read one less than the last BFS round when that round only produced already-seen states. It doesn't affect verdicts or counterexamples.
+- **Checked and held up:** BFS minimality (against the DFS oracle, early-stop path included); window/`worst_case_ms`; `complete`; report determinism; checker trace hash = replay trace hash for all three core-ref counterexamples; exit codes; serve path safety; the generated test fails on v0.3.1 and passes on v0.3.3.
+- `status/02-model.md`'s mini-BFS state counts (1.09M, 35 s, …) come from `FLEETFLIGHT_FULL=1`; default `pytest` runs 2 injections. The product-checker numbers above are the ones to quote.

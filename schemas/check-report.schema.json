@@ -50,7 +50,7 @@
           "violated_at_ms": { "type": ["integer", "null"] },
           "violation_duration_ms": { "type": ["integer", "null"] },
           "depth": { "type": ["integer", "null"], "description": "Counterexample length in moves." },
-          "worst_case_ms": { "type": ["integer", "null"], "description": "Optional, for bounded invariants that PASS: the largest timer value seen in any explored state." }
+          "worst_case_ms": { "type": ["integer", "null"], "description": "Optional, for bounded invariants that PASS: the longest window (CONTRACT §4 rule) over every explored transition; comparable with a replay's violation_window_ms." }
         },
         "additionalProperties": false
       }
