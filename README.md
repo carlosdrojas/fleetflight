@@ -9,10 +9,10 @@ ordering within explicit bounds, save a shortest failing sequence, and replay th
 sequence through the same transition code. The resulting regression belongs in the
 firmware review, alongside the assumptions that made the check meaningful.
 
-**Current checkout:** the shared contract, schemas and foundation tests are implemented.
-The CI/demo automation is written against that contract; the model, checker, CLI and UI
-still need integration on this branch. Commands stop clearly when those components are
-missing. No end-to-end verification result is claimed yet. See [stream status](status/05-ci-demo.md).
+**Current checkout (`integration`):** model, checker, simulator/replay, CLI, UI and CI
+automation are integrated, and `make demo` runs end to end on real code. Measured
+results are in [STATUS.md](STATUS.md). `core-ref` and `firmware-ref` are reference
+code we wrote, not Base firmware.
 
 ## 60-second quickstart
 
@@ -26,8 +26,7 @@ make setup && make demo
 Setup creates `.venv`, installs the Python development dependencies and runs `npm ci`
 in `ui/`. Press Enter between demo scenes. This is the quickstart command, not a
 promise that dependency downloads or exhaustive exploration finish in 60 seconds.
-On the current foundation checkout, setup stops at the missing UI package/lockfile;
-integrate streams 01–04 before recording the complete demo. Python-only contributors
+Python-only contributors
 can run `python3 -m venv .venv` and `.venv/bin/python -m pip install -e '.[dev]'`.
 
 ```sh
@@ -43,15 +42,16 @@ make serve      # build UI, serve http://127.0.0.1:8765
 3 injections and a 4000 ms horizon (`DEPTH`, `INJECTIONS`, `HORIZON_MS` overrides).
 One tick is **50 ms**; depth counts both ticks and injections. PASS applies only to
 the specified model, assumptions and bounds. Output goes to `out/check/`; each demo
-uses its own fresh `out/demo.*` directory. The server reads `out/`; pass a demo directory
-with `.venv/bin/fleetflight serve --out out/demo.ACTUAL_SUFFIX` to inspect that run.
+uses its own fresh `out/demo.*` directory. `make serve` serves the newest demo directory;
+`bash scripts/serve.sh 8765 out/check` serves another one.
 
 ## The demo to verify
 
-The intended bug is stale-command resurrection in **our reference firmware**. A BMS
-fault message is delayed, then lost across a hub restart. The hub restores an old
-DISCHARGE command from its nonvolatile memory. The inverter continues discharging
-beyond the model's 500 ms shutdown budget. That budget is a reference requirement,
+The bug is in **our reference firmware** v0.3.1: the inverter keeps discharging on
+the hub's last command for 1000 ms, which is longer than the model's 500 ms shutdown
+budget. The checker's shortest I1 counterexample is a BMS fault plus a hub↔inverter link
+loss. A separate I2 counterexample (hub restart) shows the hub restoring an old
+DISCHARGE command from NVM without a BMS report. The budget is a reference requirement,
 not a measured or supplied Base safety requirement.
 
 The scripted acceptance sequence is:
@@ -63,14 +63,15 @@ The scripted acceptance sequence is:
 5. Replay against `v0.3.3`: inverter fallback passes; full bounded checking also passes.
 6. Generate a regression from that artifact and run `pytest tests/regress`.
 
-These outcomes remain **pending integration**, not observed results on this branch.
+Observed on 2026-09-27 (M1 Pro, single thread; details in [STATUS.md](STATUS.md)):
 
 | Measurement | Observed result |
 |---|---|
-| Counterexample id and shortest path | `<from make demo>` |
-| Original trace hash / repeat consistency | `<from make demo>` |
-| v0.3.1 / v0.3.2 / v0.3.3 fault-to-stop windows | `<from make demo>` |
-| v0.3.3 explored states, transitions and elapsed time | `<from make demo>` |
+| Counterexample id and shortest path | `cex-286e0592`: `bms_fault@0`, `network_loss@0`, 10 ticks (12 moves); I1 violated at 500 ms |
+| Original trace hash / repeat consistency | 13/13 steps match the checker; 100/100 replays give `sha256:b545736726cb` |
+| v0.3.1 / v0.3.2 / v0.3.3 fault-to-stop windows | 1050 / 1050 / 250 ms (budget 500) |
+| v0.3.1 check | 1,291,349 states, 1,844,026 transitions, 38.2 s; I1, I2, I4 FAIL |
+| v0.3.3 explored states, transitions and elapsed time | 1,187,853 states, 1,728,511 transitions, 35.5 s; all PASS, worst I1 window 450 ms |
 
 The scripts require exit 1 for the demonstrated failures and exit 0 for successes;
 usage errors and missing implementations stop the demo. A passing search must also
@@ -99,19 +100,19 @@ reported, never forced. See the frozen [contract](CONTRACT.md).
 
 ## Built vs roadmap
 
-| Layer | Implemented on this branch | Pending integration / roadmap |
+| Layer | Built (on `integration`) | Roadmap |
 |---|---|---|
-| Shared definition | Pure hook API, deterministic hashes, schemas, contract tests | Reference BMS/bus model and versioned SUTs (stream 02) |
-| Search | Checker API and artifact contract | Bounded BFS and real counterexamples (stream 01) |
-| Replay | Replay and CLI contracts | Simulator, CLI, regression generator, HTTP server (stream 03) |
-| Demo and CI | Make targets, guarded scripts, workflow, written PR plan | Real generated corpus and end-to-end/hosted CI validation |
-| Visual evidence | Labeled mock and fixture designs | Real-data UI (stream 04) |
+| Shared definition | Pure hook API, deterministic hashes, schemas, contract tests; `core-ref` model with `firmware-ref` v0.3.1–v0.3.3 | Real hub code through the hooks; SIL/FFI firmware |
+| Search | Bounded BFS, minimal counterexamples, cross-checked against an independent DFS oracle; `check --only` scopes the fault model | Symmetry / partial-order reduction |
+| Replay | Simulator, replay across SUT versions, regression generator, CLI, localhost HTTP API | HIL scenario runs (no bit-exact replay there) |
+| Demo and CI | Make targets, guarded scripts, committed regression corpus, workflow | Hosted Actions run and branch protection (needs a remote) |
+| Visual evidence | Real-data UI (spec, checks, counterexample swimlane, replay, versions, regressions) | `GET /api/regress` for the generated test source |
 | Real firmware / fleet | No hardware validation claimed | SIL/FFI adapters, HIL, physical systems, fleet invariants |
 
 ## Assumptions and claims
 
 - **ASSUMED:** the discrete model, fault domains, bus timing and restart behavior
-  represent the coordination behavior being investigated. Once integrated,
+  represent the coordination behavior being investigated.
   `fleetflight describe --model core-ref --json` and every report expose the exact assumptions.
 - **ASSUMED:** the reference shutdown budget is 500 ms. Production requirements must
   come from the firmware/system owner.
@@ -128,8 +129,8 @@ reported, never forced. See the frozen [contract](CONTRACT.md).
 
 The workflow has independent `test`, `regress` and `check` jobs. `regress` replays the
 committed corpus against `scripts/ci_sut.txt`, then runs generated pytest tests.
-It fails when the corpus is empty. After integration, run `make demo-fast`, review
-the generated files and commit `tests/regress/` before expecting this gate to pass.
+It fails when the corpus is empty. The corpus holds `cex-286e0592` (from the real demo
+run); it passes against v0.3.3 and fails if the pin is moved back to v0.3.1 or v0.3.2.
 The slower `check` job publishes a Markdown summary even on an invariant failure
 and uploads available counterexamples on failure.
 

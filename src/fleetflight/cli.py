@@ -232,7 +232,7 @@ def _execute(args):
             options["injections"] = tuple(name.strip() for name in args.only.split(",") if name.strip())
         model = load_model(args.model, sut=args.sut, bounds=bounds, **options)
         if args.only:
-            offered = [item["name"] for item in model.describe()["injectables"]]
+            offered = [item["name"] for item in load_model(args.model, sut=args.sut, bounds=bounds).describe()["injectables"]]
             unknown = sorted(set(options["injections"]) - set(offered))
             if unknown or not options["injections"]:
                 raise ValueError(f"--only: unknown injections {unknown}; the model offers {offered}")

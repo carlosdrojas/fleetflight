@@ -43,7 +43,7 @@ function VersionsView({ shared, cex, cexId }: { shared: Shared; cex: Counterexam
 
   const inv = cex.invariant;
   const bound = num(inv?.bound_ms);
-  const firstFault = cex.trace?.find((s) => inv?.timer_key && num(s.snapshot?.[inv.timer_key]) !== null);
+  const firstFault = cex.trace?.find((s) => inv?.timer_key && num(s?.snapshot?.[inv.timer_key]) !== null);
   const faultAt = firstFault && inv?.timer_key ? num(firstFault.snapshot?.[inv.timer_key]) : null;
   const durations = rows.map((r) => num(r.r?.violation_window_ms?.duration_ms)).filter((d): d is number => d !== null);
   const scaleMax = Math.max(bound ?? 0, ...durations, 1) * 1.15;

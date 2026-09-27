@@ -132,7 +132,7 @@ export function niceTicks(endMs: number, maxTicks = 12): number[] {
   const end = Math.max(1, endMs);
   const raw = end / maxTicks;
   const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? 10 * mag;
+  const step = Math.max(1, [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? 10 * mag); // whole ms only
   const out: number[] = [];
   for (let t = 0; t <= end + 1e-9; t += step) out.push(Math.round(t));
   return out;
@@ -176,7 +176,7 @@ export function collapseTrace(trace: TraceStep[], laneKeys: string[], keep: numb
 
 /** One-line description of what a step did, from its move and events. */
 export function stepSummary(s: TraceStep): string {
-  const ev = (s.events ?? []).filter((e) => !e.injected).map((e) => e.detail || e.name).filter(Boolean);
+  const ev = (s.events ?? []).filter((e) => e && !e.injected).map((e) => e.detail || e.name).filter(Boolean);
   if (ev.length) return ev.join(" · ");
   if (s.move?.injected) return "chosen by the adversary";
   return "";

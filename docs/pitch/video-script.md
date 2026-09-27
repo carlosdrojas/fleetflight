@@ -1,13 +1,13 @@
 # FleetFlight: 5-minute demo video script
 
-**Status: DRAFT.** Every `<from demo run>` has to be filled in from the integrator's `STATUS.md` (root of `integration`) before recording. Don't record with mock numbers: `1,284,511`, `41.2 s`, `cex-0017`, `600 ms`, `550 ms`, `300 ms` and `~400 ms` all come from `mocks/` and are placeholders.
+**Status: numbers filled from `STATUS.md`** (integrator, real run on 2026-09-27). The 1:00–2:15 walkthrough and the 2:45 beat were rewritten to follow the real counterexample (fault + link loss), not the mock restart story. Don't record with mock numbers: `1,284,511`, `41.2 s`, `cex-0017`, `600 ms`, `550 ms`, `300 ms` and `~400 ms` all come from `mocks/` and are placeholders.
 
 **Before recording, check the story against real output.** The narration follows the demo story in `sessions/_common.md`. The real model (`core-ref`, branch `model`) differs from the mocks in ways that change the wording:
 - It uses 50 ms ticks, not 100 ms.
 - The BMS FAULT is retransmitted every 100 ms until the hub ACKs it, unless the model is run with `fault_retx_ms=None`.
 - The dispatch expires at 3 s, not 30 s.
 
-Run `fleetflight explain <cex-id>` and rewrite the 1:00–2:15 step list so it says exactly what that output says. If the real counterexample takes a different path (for example a retransmitted FAULT that arrives after boot and loses a race with the NVM resume), narrate the real path. Don't narrate this draft.
+Done by the integrator: the 1:00–2:15 steps below follow `fleetflight explain cex-286e0592` (the real shortest counterexample). If a fresh run produces a different id, re-check the narration against its `explain` output.
 
 **Recording format** (from the event's *Demo Video Instructions*, see `submission-checklist.md`):
 - Loom, camera on, 2–5 minutes, with a team intro in the first 30 s.
@@ -44,7 +44,7 @@ fleetflight sim --model core-ref --sut v0.3.1 --scenario bms-fault-basic --seed 
 Highlight the `I1 FAULT_SHUTDOWN_BOUNDED PASS` line and the fault→shutdown time.
 
 **Spoken:**
-> Here's the obvious test. The inverter is discharging at 5 kilowatts, and the BMS faults. The fault reaches the hub, the hub sends STOP, and the inverter is shut down in `<from demo run>` milliseconds, inside our 500-millisecond budget. Green.
+> Here's the obvious test. The inverter is discharging at 5 kilowatts, and the BMS faults. The fault reaches the hub, the hub sends STOP, and the inverter is shut down in 200 milliseconds, inside our 500-millisecond budget. Green.
 >
 > But that's *one* ordering. The question a safety engineer actually asks is: does this hold for *every* ordering of faults, delays and restarts the system is allowed to see?
 
@@ -57,15 +57,15 @@ Highlight the `I1 FAULT_SHUTDOWN_BOUNDED PASS` line and the fault→shutdown tim
 2. UI: open that run and step through the counterexample swimlane (BMS / bus / hub / inverter lanes) one step per sentence below.
 
 **Spoken:**
-> So we check. This is a bounded model checker: breadth-first search over every allowed choice. At each 50-millisecond tick, the adversary can fault the BMS, restart the hub, or delay, drop or duplicate a message, with up to `<from demo run>` injections and a `<from demo run>`-second horizon.
+> So we check. This is a bounded model checker: breadth-first search over every allowed choice. At each 50-millisecond tick, the adversary can fault the BMS, restart the hub, or delay, drop or duplicate a message, or cut the hub-to-inverter link, with up to 3 injections and a 4-second horizon.
 >
 > Notice the assumptions print *first*. Bus latency up to 800 milliseconds, hub boot 400, hardware interlocks out of scope. Everything we prove is conditional on these, so they're on screen, not in a footnote.
 >
-> `<from demo run>` states, `<from demo run>` seconds. Invariant I1 fails. Because the search is breadth-first, this is a *shortest* counterexample: `<from demo run>` moves.
+> 1.29 million states, about 38 seconds. Invariant I1 fails, and so do I2 and I4. Because the search is breadth-first, this is a *shortest* counterexample: 12 moves, two injections and ten ticks.
 >
-> Let's walk it. *[swimlane step 1]* The BMS faults and sends FAULT. *[step 2]* The adversary delays it, inside the latency bound. *[step 3]* The hub restarts while it's in flight, and its receive buffer is gone. *[step 4]* The hub boots and does "restart recovery": it restores the last command from NVM, DISCHARGE, and re-sends it. *[step 5]* The inverter accepts it. It isn't expired.
+> Let's walk it. *[swimlane step 1]* The BMS faults and sends FAULT. *[step 2]* At the same instant, the hub-to-inverter link drops. *[step 3]* The hub gets the fault, ACKs it and sends STOP, but the STOP never reaches the inverter. *[step 4]* The inverter does what v0.3.1 was written to do: hold its last setpoint for a second without hub messages. So it keeps discharging.
 >
-> *[violation marker]* The BMS is faulted and the inverter is still discharging, `<from demo run>` milliseconds past the fault. Budget: 500.
+> *[violation marker]* The BMS is faulted and the inverter is still discharging at 500 milliseconds, the edge of the budget. Replayed to the end, it runs for 1,050.
 >
 > Every step in that trace is individually reasonable. That's why nobody writes this test.
 
@@ -75,45 +75,45 @@ Highlight the `I1 FAULT_SHUTDOWN_BOUNDED PASS` line and the fault→shutdown tim
 
 **On screen:** terminal.
 ```
-fleetflight replay --counterexample <cex-id> --repeat 100
+fleetflight replay --counterexample cex-286e0592 --repeat 100
 ```
 Show the 100 identical `trace_hash` lines (or the summary `100/100 identical`). Then the UI replay view showing "trace hash matches checker ✓".
 
 **Spoken:**
-> A counterexample you can't reproduce is a rumor. This one is a list of moves, and the simulator executes it through the *same* transition functions the checker searched. Nothing gets translated. We replay it a hundred times and get a hundred identical trace hashes: `<from demo run>`. The hash matches the checker's byte for byte.
+> A counterexample you can't reproduce is a rumor. This one is a list of moves, and the simulator executes it through the *same* transition functions the checker searched. Nothing gets translated. We replay it a hundred times and get a hundred identical trace hashes: b545736726cb. The hash matches the checker's byte for byte.
 
 ---
 
 ## 2:45–3:45 · Fix, still fails, real fix, and the trade-off  ← strongest beat
 
 **On screen:**
-1. UI: SUT selector at v0.3.2, and the changelog line "Hub boots DEGRADED, drops the NVM command and sends STOP on boot."
-2. Terminal: `fleetflight replay --counterexample <cex-id> --sut v0.3.2`. I1 still FAILs; show the fault→shutdown bar against the 500 ms budget line.
-3. UI: switch to v0.3.3, changelog "inverter goes SHUTDOWN after 200 ms without a hub message…". Replay: PASS, bar well under budget.
-4. Terminal: `fleetflight check --model core-ref --sut v0.3.3`: all invariants PASS, plus the worst-case line and the trade-off line.
+1. UI: SUT selector at v0.3.2 (hub boots DEGRADED, drops the NVM command and sends STOP on boot).
+2. Terminal: `fleetflight replay --counterexample cex-286e0592 --sut v0.3.2`. I1 still FAILs; show the fault→shutdown bar against the 500 ms budget line.
+3. UI: switch to v0.3.3 (inverter goes SHUTDOWN after 200 ms without a hub message). Replay: PASS, bar well under budget.
+4. Terminal: `fleetflight check --model core-ref --sut v0.3.3`: all invariants PASS, with the worst-case windows in the Detail column.
 
 **Spoken:**
-> So we fix the hub, which is the obvious move. Version 0.3.2: on boot, go DEGRADED, forget the NVM command, send STOP.
+> So we fix the hub, which is the obvious move. The same check also flagged I2: after a restart, v0.3.1 restores DISCHARGE from NVM without hearing from the BMS. Version 0.3.2 fixes that: on boot, go DEGRADED, forget the NVM command, send STOP.
 >
-> And we replay the *exact same* sequence against it. *Still fails.* The resurrection is gone, but shutdown takes `<from demo run>` milliseconds. The hub's 400-millisecond boot alone eats most of the budget, so no change on the hub side can fix this. I shipped a half-fix, and the tool caught it.
+> And we replay the *exact same* fault sequence against it. *Still fails*: 1,050 milliseconds. The hub did its job; the STOP just can't reach an inverter that's waiting on the hub. I fixed the wrong component, and the tool caught it.
 >
-> The real rule is architectural: *safety can't depend on a component that can restart*. Version 0.3.3 moves the decision down to the inverter. No hub heartbeat for 200 milliseconds means shut down locally.
+> The real rule is architectural: *safety can't depend on a component you can lose*. Version 0.3.3 moves the decision down to the inverter. No hub message for 200 milliseconds means shut down locally.
 >
-> Same sequence: pass, `<from demo run>` milliseconds. And not just this sequence. The full check passes every invariant, with a worst case of `<from demo run>`.
+> Same sequence: pass, 250 milliseconds. And not just this sequence. The full check, 1.19 million states, passes every invariant, with a worst case of 450.
 >
-> And it tells us what that costs: every hub restart now idles the inverter for about `<from demo run>` milliseconds, which is dispatch availability we're giving up. That's a real trade-off, and it's now a *number* someone can weigh instead of a surprise.
+> That safety has a price we can measure too. In this model, after a hub restart v0.3.3 sits idle for the rest of the dispatch, because we don't model the cloud re-dispatching. That's a trade-off someone should weigh on the PR, not discover in the field.
 
 ---
 
 ## 3:45–4:15 · Regression test and CI
 
 **On screen:**
-1. Terminal: `fleetflight regress --from <cex-id>`, then `pytest tests/regress -q` (green against v0.3.3).
+1. Terminal: `fleetflight regress --from cex-286e0592`, then `pytest tests/regress -q` (green against v0.3.3). Optional: `FLEETFLIGHT_SUT=v0.3.1 pytest tests/regress -q` goes red.
 2. Briefly: the generated test file, with the moves list and the pinned assertions.
 3. `.github/workflows/fleetflight-verify.yml`, or the demo PR's checks, showing the two lanes: `regress` (fast) and `check` (bounded).
 
 **Spoken:**
-> That counterexample is now a pytest file, generated rather than hand-written, with the moves pinned. In CI there are two lanes. The fast lane replays every stored counterexample in `<from demo run>` seconds and blocks the merge. The slow lane re-runs the bounded check against the PR's code. If anyone reintroduces restart recovery, this test goes red on the pull request, not in the field.
+> That counterexample is now a pytest file, generated rather than hand-written, with the moves pinned. In CI there are two lanes. The fast lane replays every stored counterexample in about half a second and blocks the merge. The slow lane re-runs the bounded check against the PR's code. If anyone brings back the one-second hold, this test goes red on the pull request, not in the field.
 
 ---
 
