@@ -584,6 +584,33 @@ class CoreRef:
         return doc
 
 
+def _delay(mid: str, extra: int) -> Move:
+    return Move("bus_delay", (("msg", mid), ("extra_ms", extra)))
+
+
+SCENARIOS: dict[str, tuple[str, list[tuple[int, Move]]]] = {
+    # name: (description, [(t_ms, injected move), ...]); injections at t apply before the TICK leaving t
+    "bms-fault-basic": (
+        "Happy path: BMS fault at 100 ms, its FAULT message delayed 400 ms, no restart.",
+        [(100, Move("bms_fault")), (100, _delay("fault@100", 400))]),
+    "restart-during-fault": (
+        "The README sequence: fault at 100 ms, FAULT delayed 400 ms, hub restarts at 200 ms.",
+        [(100, Move("bms_fault")), (100, _delay("fault@100", 400)), (200, Move("hub_restart"))]),
+    "fault-during-link-loss": (
+        "BMS fault while the hub-inverter link is down (the minimal I1 counterexample for v0.3.1).",
+        [(0, Move("bms_fault")), (0, Move("network_loss"))]),
+    "stale-reorder": (
+        "A pre-fault refresh (seq41) is delayed past the STOP (I4 in v0.3.1/v0.3.2).",
+        [(100, Move("bms_fault")), (100, _delay("cmd@100", 100))]),
+    "restart-only": (
+        "Hub restart with a healthy BMS (I2 in v0.3.1: blind resume from NVM).",
+        [(0, Move("hub_restart"))]),
+    "link-loss": (
+        "The hub-inverter link goes down at 0 ms (I5 fallback).",
+        [(0, Move("network_loss"))]),
+}
+
+
 def _timers(t: int, bms: str, inv_mode: str, last_rx: int, i1_prev: int | None) -> tuple[int | None, int | None]:
     """The I1 and I5 timers (see the invariants' timer_key)."""
     running = inv_mode == "DISCHARGING"

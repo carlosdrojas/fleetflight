@@ -9,9 +9,9 @@ from __future__ import annotations
 from typing import Any
 
 from fleetflight.core import Bounds
-from fleetflight.models.core_ref import DEFAULT_BOUNDS, CoreRef
+from fleetflight.models.core_ref import DEFAULT_BOUNDS, SCENARIOS, CoreRef
 
-__all__ = ["load_model", "list_models", "CoreRef", "DEFAULT_BOUNDS"]
+__all__ = ["load_model", "list_models", "CoreRef", "DEFAULT_BOUNDS", "SCENARIOS"]
 
 
 def list_models() -> dict[str, list[str]]:

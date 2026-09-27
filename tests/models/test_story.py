@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 
 from fleetflight.core import Move
-from fleetflight.models import load_model
+from fleetflight.models import SCENARIOS, load_model
 
 from ._script import run_script
 
@@ -113,3 +113,11 @@ def test_finding_single_shot_fault_breaks_every_version(v: str) -> None:
     r = run(v, [(100, Move("bms_fault")), (100, Move("bus_drop", (("msg", "fault@100"),)))], fault_retx_ms=None)
     assert r.failures() == {"I1": 600}
     assert r.windows("i1_since_ms") == [(100, 2100)]
+
+
+def test_named_scenarios_match_this_file() -> None:
+    assert SCENARIOS["bms-fault-basic"][1] == HAPPY
+    assert SCENARIOS["restart-during-fault"][1] == README_RESTART
+    assert SCENARIOS["fault-during-link-loss"][1] == FAULT_DURING_LINK_LOSS
+    assert SCENARIOS["stale-reorder"][1] == STALE_REORDER
+    assert SCENARIOS["restart-only"][1] == RESTART_ONLY
