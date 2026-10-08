@@ -171,3 +171,54 @@ main.main > * { flex-shrink: 0; }
 .det-grid span.same { background: var(--accent-bar); }
 .det-grid span.diff { background: var(--fail); }
 .det-grid span.err { background: var(--warn); }
+
+/* segmented control */
+.seg { display: inline-flex; border: 1px solid var(--line2); border-radius: 8px; overflow: hidden; }
+.seg-b { height: 32px; padding: 0 12px; display: inline-flex; align-items: center; background: var(--panel); border: 0; border-right: 1px solid var(--line2); color: var(--muted); font-family: var(--mono); font-size: 12px; text-decoration: none; cursor: pointer; }
+.seg-b:last-child { border-right: 0; }
+.seg-b:hover { color: var(--text); }
+.seg-b.on { background: var(--accent-bg); color: var(--accent-hi); }
+
+/* 3D replay */
+.scene-bar { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; flex-wrap: wrap; }
+.scene-scrub { flex: 1; min-width: 200px; accent-color: var(--accent); }
+.scene-clock { width: 104px; color: var(--text2); font-size: 13px; }
+.scene-grid { display: grid; gap: 14px; }
+.scene-panel { position: relative; height: 560px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); transition: border-color 0.2s, box-shadow 0.2s; }
+.scene-panel.is-fail { border-color: var(--fail); box-shadow: 0 0 0 1px var(--fail), 0 0 28px rgba(255, 107, 87, 0.18); }
+.scene-canvas { position: absolute; inset: 0; }
+.scene-canvas canvas { display: block; }
+.scene-labels { position: absolute; inset: 0; }
+.scene-hud-top { position: absolute; top: 12px; left: 14px; display: flex; align-items: center; gap: 10px; pointer-events: none; }
+.scene-ver { font-family: var(--display); font-size: 20px; font-weight: 600; }
+.scene-overlay { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--mono); background: rgba(13, 16, 21, 0.7); }
+.scene-alert { position: absolute; top: 12px; right: 14px; padding: 6px 10px; border-radius: 6px; background: var(--fail-bg); color: var(--fail-text); font-family: var(--mono); font-size: 12px; font-weight: 600; animation: scene-blink 0.9s steps(2, start) infinite; pointer-events: none; }
+@keyframes scene-blink { to { opacity: 0.55; } }
+.scene-hud-bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 14px 12px; display: flex; flex-direction: column; gap: 10px; background: linear-gradient(to top, rgba(13, 16, 21, 0.95) 55%, rgba(13, 16, 21, 0)); pointer-events: none; }
+.scene-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; min-height: 76px; justify-content: flex-end; }
+.scene-log li { color: var(--text2); }
+.scene-log li.tone-warn { color: var(--warn); }
+.scene-log li.tone-fail { color: var(--fail-text); }
+.scene-log li.tone-pass { color: var(--pass); }
+.scene-log li:last-child { font-weight: 600; }
+.scene-timer-h { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.scene-timer-track { position: relative; height: 8px; border-radius: 4px; background: #1a1f27; }
+.scene-timer-fill { height: 100%; border-radius: 4px; background: var(--warn); }
+.scene-timer-fill.over { background: var(--fail); }
+.scene-timer-fill.done { background: var(--pass); }
+.scene-timer-budget { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text2); }
+.scene-timer-budget::after { content: "budget"; position: absolute; top: -16px; left: 4px; font-size: 10px; color: var(--muted); font-family: var(--mono); }
+.scene-name { font-family: var(--display); font-size: 13px; font-weight: 600; color: var(--text); text-shadow: 0 1px 4px #000; pointer-events: none; }
+.scene-name-dim { color: var(--muted); }
+.scene-state { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(20, 25, 32, 0.85); border: 1px solid var(--line2); color: var(--text2); pointer-events: none; }
+.scene-state-ok { color: var(--pass); border-color: var(--pass-line); }
+.scene-state-warn { color: var(--warn); border-color: var(--warn-line); }
+.scene-state-fail { color: var(--fail-text); border-color: var(--fail); background: var(--fail-bg); }
+.scene-state-active { color: var(--accent-hi); border-color: var(--accent-bar); }
+.scene-state-off { color: var(--muted); }
+.scene-tag { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 6px; border-radius: 4px; pointer-events: none; }
+.scene-tag-fail { background: var(--fail-bg); color: var(--fail-text); border: 1px solid var(--fail); }
+.scene-pkt { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(13, 16, 21, 0.85); pointer-events: none; }
+.scene-pkt-fault { color: var(--warn); }
+.scene-pkt-ack { color: var(--pass); }
+.scene-pkt-cmd { color: var(--accent-hi); }

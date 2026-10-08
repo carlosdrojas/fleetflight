@@ -9,6 +9,7 @@ import CexScreen from "./screens/Cex";
 import ReplayScreen from "./screens/Replay";
 import VersionsScreen from "./screens/Versions";
 import RegressScreen from "./screens/Regress";
+import SceneScreen from "./screens/Scene";
 
 export interface Shared {
   describe: Describe | null;
@@ -52,6 +53,13 @@ const I = {
     <>
       <path d="m12 3 9 5-9 5-9-5z" />
       <path d="m3 13 9 5 9-5" />
+    </>
+  ),
+  scene: (
+    <>
+      <path d="m12 2 9 5v10l-9 5-9-5V7z" />
+      <path d="m3 7 9 5 9-5" />
+      <path d="M12 12v10" />
     </>
   ),
   regress: (
@@ -99,12 +107,13 @@ export default function App() {
     },
   };
 
-  const [page, id] = route;
+  const [page, id, sub] = route;
   const pages: { key: string; label: string; icon: ReactNode; to: string; count?: number }[] = [
     { key: "spec", label: "Spec", icon: I.spec, to: href("spec") },
     { key: "checks", label: "Checks", icon: I.checks, to: href("checks") },
     { key: "cex", label: "Counterexamples", icon: I.cex, to: href("cex", page === "cex" || page === "replay" || page === "versions" || page === "regress" ? id : null), count: cexIds.length },
     { key: "replay", label: "Replay", icon: I.replay, to: href("replay", page === "cex" || page === "versions" || page === "regress" ? id : null) },
+    { key: "scene", label: "3D Replay", icon: I.scene, to: href("scene", page === "cex" || page === "replay" || page === "versions" || page === "regress" ? id : null) },
     { key: "versions", label: "Versions", icon: I.versions, to: href("versions", page === "cex" || page === "replay" || page === "regress" ? id : null) },
     { key: "regress", label: "Regressions", icon: I.regress, to: href("regress", page === "cex" || page === "replay" || page === "versions" ? id : null) },
   ];
@@ -122,6 +131,9 @@ export default function App() {
       break;
     case "versions":
       screen = <VersionsScreen shared={shared} cexId={id ?? cexIds[0] ?? null} />;
+      break;
+    case "scene":
+      screen = <SceneScreen shared={shared} cexId={id ?? cexIds[0] ?? null} atMs={sub !== undefined && /^\d+$/.test(sub) ? Number(sub) : null} />;
       break;
     case "regress":
       screen = <RegressScreen shared={shared} cexId={id ?? null} />;
