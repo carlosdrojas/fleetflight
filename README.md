@@ -17,7 +17,7 @@ finished afterwards.
 
 ## Hosted demo
 
-**Live:** _link added after the first Vercel deploy_
+**Live:** https://fleetflight.vercel.app (opens on the 3D replay; desktop browser recommended)
 
 The hosted site is the same UI with two differences, both labeled on the page:
 - **Model-check results are a snapshot.** A full check takes ~36 s and ~860 MB, so it runs
