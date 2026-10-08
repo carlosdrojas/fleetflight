@@ -4,15 +4,29 @@
 Model the system. Find a failing ordering. Replay it in CI.
 
 A BMS, hub and inverter can each pass their own tests while their coordination fails
-during a delayed message or restart. FleetFlight is being built to search every allowed
+during a delayed message or restart. FleetFlight searches every allowed
 ordering within explicit bounds, save a shortest failing sequence, and replay that
 sequence through the same transition code. The resulting regression belongs in the
 firmware review, alongside the assumptions that made the check meaningful.
 
-**Current checkout (`integration`):** model, checker, simulator/replay, CLI, UI and CI
-automation are integrated, and `make demo` runs end to end on real code. Measured
-results are in [STATUS.md](STATUS.md). `core-ref` and `firmware-ref` are reference
-code we wrote, not Base firmware.
+Model, checker, simulator/replay, CLI, UI (including a 3D replay) and CI automation are
+integrated, and `make demo` runs end to end on real code. Measured results are in
+[STATUS.md](STATUS.md). `core-ref` and `firmware-ref` are reference code written for this
+project, not Base firmware. Built at the Base Power × AITX Hackathon (Sep 2026) and
+finished afterwards.
+
+## Hosted demo
+
+**Live:** _link added after the first Vercel deploy_
+
+The hosted site is the same UI with two differences, both labeled on the page:
+- **Model-check results are a snapshot.** A full check takes ~36 s and ~860 MB, so it runs
+  locally or in CI, and `make site-data` exports that real run to `ui/public/data/`.
+- **Replays are live.** `api/replay.py` is a Vercel Python function that runs the
+  counterexample through the same transition code (~0.1 s). If it is unavailable, the UI
+  falls back to the exported replay and marks the panel "saved replay".
+`tests/site/` checks that the function's output is identical to the exported replay.
+To run the checker yourself, use the quickstart below.
 
 ## 60-second quickstart
 
@@ -161,6 +175,7 @@ a future backend, not a capability claimed here.
 | `src/fleetflight/{sim,regress,report}/`, `cli.py` | Replay, generated tests, reports and CLI stream |
 | `tests/`, `tests/regress/` | Product tests and generated counterexample regressions |
 | `scripts/`, `Makefile`, `.github/workflows/` | Local reproduction, recording and CI |
-| `ui/` | UI stream (absent until integrated) |
+| `ui/` | React UI (`ui/src/screens/Scene.tsx` is the 3D replay); `ui/public/data/` is the exported run for the hosted site |
+| `api/replay.py`, `vercel.json`, `scripts/export_site.py` | Hosted demo: live replay function, Vercel config, site-data export |
 | `mocks/`, `fixtures/` | Labeled design examples, never measured evidence |
 | `sessions/`, `status/` | Stream instructions, progress and integration blockers |

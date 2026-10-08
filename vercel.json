@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "cd ui && npm ci",
+  "buildCommand": "cd ui && VITE_FF_STATIC=1 VITE_REPO_URL=https://github.com/carlosdrojas/fleetflight npm run build",
+  "outputDirectory": "ui/dist",
+  "functions": {
+    "api/replay.py": {
+      "includeFiles": "{src/fleetflight/**,ui/public/data/cex/**}",
+      "maxDuration": 10
+    }
+  }
+}

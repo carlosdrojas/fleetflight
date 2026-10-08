@@ -147,6 +147,8 @@ export interface Window { start_ms?: number; end_ms?: number | null; duration_ms
 export interface ReplayStep extends TraceStep { match?: boolean | null; diff?: string[] }
 
 export interface ReplayResult extends Fixtureable {
+  /** Site mode: served from the exported run because the live replay function was unavailable. */
+  _snapshot?: boolean;
   counterexample?: string;
   model?: ModelRef;
   sut?: SutRef;
@@ -172,3 +174,13 @@ export interface RegressList extends Fixtureable {
   tests?: { cex?: string; path?: string; invariant?: string; sut?: string }[];
 }
 export interface RegressSource extends Fixtureable { cex?: string; path?: string; source?: string }
+
+/** Site mode: provenance of the exported run (scripts/export_site.py). */
+export interface SiteMeta {
+  checked_at?: string;
+  exported_at?: string;
+  commit?: string;
+  source?: string;
+  counterexamples?: string[];
+  versions?: string[];
+}

@@ -166,7 +166,7 @@ function SceneBody({ shared, cex, cexId, atMs }: { shared: Shared; cex: Countere
         ))}
       </div>
       <p className="faint small" style={{ marginTop: 10 }}>
-        Each panel is a live replay of the counterexample through the real transition code (POST /api/replay). Drag to orbit, scroll to zoom. Simulated time runs at {speed}× real time.
+        Each panel replays the counterexample through the real transition code (POST /api/replay). Drag to orbit, scroll to zoom. Simulated time runs at {speed}× real time.
       </p>
     </>
   );
@@ -202,6 +202,7 @@ function ScenePanel({ panel, t, bound, views, invId }: { panel: Panel; t: number
         <span className="scene-ver">{sutVersion(sut)}</span>
         {r?.verdict && <span className={r.verdict === "PASS" ? "chip-pass" : "chip-fail"}>{r.verdict}</span>}
         {windowMs !== null && <span className="faint small mono">fault→stop {windowMs} ms</span>}
+        {r?._snapshot && <span className="faint small mono" title="The live replay function was unavailable; showing the exported replay">· saved replay</span>}
       </div>
       {panel.state === "loading" && <div className="scene-overlay muted">Replaying {sutVersion(sut)}…</div>}
       {panel.state === "error" && <div className="scene-overlay t-fail">{panel.error}</div>}

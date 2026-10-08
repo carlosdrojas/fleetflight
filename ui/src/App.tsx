@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { api } from "./lib/api";
+import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
+import { api, SITE_MODE } from "./lib/api";
 import { FixtureCtx, HeaderCtx, href, useAsync, useFixtureFlag, useRoute } from "./lib/hooks";
 import type { Describe, RunList } from "./lib/types";
 import { sutVersion } from "./lib/trace";
@@ -9,7 +9,11 @@ import CexScreen from "./screens/Cex";
 import ReplayScreen from "./screens/Replay";
 import VersionsScreen from "./screens/Versions";
 import RegressScreen from "./screens/Regress";
-import SceneScreen from "./screens/Scene";
+import { Loading } from "./components/ui";
+
+// three.js is ~0.5 MB; only load it when the 3D screen opens.
+const SceneScreen = lazy(() => import("./screens/Scene"));
+const REPO_URL = import.meta.env.VITE_REPO_URL as string | undefined;
 
 export interface Shared {
   describe: Describe | null;
@@ -107,7 +111,9 @@ export default function App() {
     },
   };
 
-  const [page, id, sub] = route;
+  const [rawPage, id, sub] = route;
+  // The hosted demo lands on the 3D replay; locally the default stays the spec.
+  const page = SITE_MODE && !window.location.hash ? "scene" : rawPage;
   const pages: { key: string; label: string; icon: ReactNode; to: string; count?: number }[] = [
     { key: "spec", label: "Spec", icon: I.spec, to: href("spec") },
     { key: "checks", label: "Checks", icon: I.checks, to: href("checks") },
@@ -133,7 +139,11 @@ export default function App() {
       screen = <VersionsScreen shared={shared} cexId={id ?? cexIds[0] ?? null} />;
       break;
     case "scene":
-      screen = <SceneScreen shared={shared} cexId={id ?? cexIds[0] ?? null} atMs={sub !== undefined && /^\d+$/.test(sub) ? Number(sub) : null} />;
+      screen = (
+        <Suspense fallback={<Loading lines={5} />}>
+          <SceneScreen shared={shared} cexId={id ?? cexIds[0] ?? null} atMs={sub !== undefined && /^\d+$/.test(sub) ? Number(sub) : null} />
+        </Suspense>
+      );
       break;
     case "regress":
       screen = <RegressScreen shared={shared} cexId={id ?? null} />;
@@ -168,6 +178,7 @@ export default function App() {
               )}
             </div>
           </header>
+          {SITE_MODE && <SiteBanner />}
           <div className="body">
             <nav className="nav" aria-label="Primary">
               <div className="nav-h">VERIFY</div>
@@ -200,4 +211,23 @@ function SharedFlags({ describe, runs }: { describe: Describe | null; runs: RunL
   useFixtureFlag("describe", describe);
   useFixtureFlag("runs", runs);
   return null;
+}
+
+function SiteBanner() {
+  const meta = useAsync(api.meta, "meta");
+  const when = meta.data?.checked_at ? new Date(meta.data.checked_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : null;
+  return (
+    <div className="site-banner" role="note">
+      <b>Live demo.</b>
+      <span>
+        Model-check results are a snapshot of a real run{when && ` on ${when}`}
+        {meta.data?.commit && <span className="mono faint"> ({meta.data.commit})</span>}. Replays run live through the same transition code.
+      </span>
+      {REPO_URL && (
+        <a href={REPO_URL} target="_blank" rel="noreferrer">
+          Run the checker yourself →
+        </a>
+      )}
+    </div>
+  );
 }

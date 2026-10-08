@@ -9,7 +9,7 @@ HORIZON_MS ?= 4000
 OUT ?= out/check
 PORT ?= 8765
 
-.PHONY: setup test check demo demo-fast ui serve regress
+.PHONY: setup test check demo demo-fast ui serve regress site-data
 setup:
 	@$(PYTHON) -c 'import sys; sys.exit("Python 3.12+ required") if sys.version_info < (3, 12) else None'
 	$(PYTHON) -m venv "$(VENV)"
@@ -36,3 +36,7 @@ ui:
 
 serve: ui
 	bash scripts/serve.sh "$(PORT)"
+
+# Export the newest out/demo.* run as the hosted site's data (ui/public/data/); commit the result.
+site-data:
+	"$(VENV)/bin/python" scripts/export_site.py $(OUT_DIR)

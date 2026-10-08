@@ -36,7 +36,11 @@ Numbers in `mocks/` and `fixtures/` are placeholders. Never quote them as result
   - `make serve` serves the newest `out/demo.*`.
 - **Demo story = what the checker finds:** the shortest I1 counterexample on v0.3.1 is fault + link loss (`cex-286e0592`). It still fails on v0.3.2 (1050 ms) and passes on v0.3.3 (250 ms). The restart story appears only as the scripted scenario `restart-during-fault`, or through `--only`, and v0.3.2 passes the scoped restart counterexample (see STATUS.md).
 
+- **Hosted demo (2026-10-08):** Vercel. UI built with `VITE_FF_STATIC=1` reads the exported run from `ui/public/data/` (`make site-data`, committed). `POST /api/replay` is live via `api/replay.py` (stdlib-only, imports model + sim directly, not cli.py); the UI falls back to the exported replay and labels it. Full `check` is never run on the host (~36 s, ~860 MB).
+- **3D replay** (`#/scene/<cex>[/<ms>]`): three.js, lazy-loaded; every visual comes from the replay trace (`ui/src/lib/scene.ts`). The site lands on it.
+
 ## Status
 - 00 foundation: done. Tagged `contract-v1`. See `status/00-foundation.md`.
 - 01–06 merged into `integration` (07). `make demo-fast` passes end to end on real code. Real numbers are in `STATUS.md`. `pytest -q` is green, as are the UI's 23 vitest tests and its build.
 - Cut: `/api/regress`, fleet stretch (08), and the "idle per restart" line in the pitch (only a model test computes it; see STATUS.md).
+- 2026-10-08: `integration` merged to `main`. 3D replay + hosted-demo plumbing on `main`. Not yet pushed: no GitHub remote, no Vercel project.
