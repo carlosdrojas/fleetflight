@@ -1,83 +1,166 @@
-# FleetFlight (mocks)
+# FleetFlight
 
 **Pre-release verification for distributed battery firmware.**
-*Model the system. Break the assumptions. Replay the failure.*
+Model the system. Find a failing ordering. Replay it in CI.
 
-This directory is **mocks only**: what the project would look like when built. Nothing here runs yet.
-Every number in these files (state counts, timings, run durations) is **MOCKED**. The component
-model is a **reference implementation we wrote**, not Base's Gen 3 architecture.
+A BMS, hub and inverter can each pass their own tests while their coordination fails
+during a delayed message or restart. FleetFlight is being built to search every allowed
+ordering within explicit bounds, save a shortest failing sequence, and replay that
+sequence through the same transition code. The resulting regression belongs in the
+firmware review, alongside the assumptions that made the check meaningful.
 
-## The one-sentence claim we'd make in the video
+**Current checkout (`integration`):** model, checker, simulator/replay, CLI, UI and CI
+automation are integrated, and `make demo` runs end to end on real code. Measured
+results are in [STATUS.md](STATUS.md). `core-ref` and `firmware-ref` are reference
+code we wrote, not Base firmware.
 
-> FleetFlight found a timing-dependent coordination bug in a *reference* BMS ↔ Hub ↔ Inverter
-> implementation, produced a minimal counterexample, replayed it deterministically in an executable
-> simulator, verified the fix against the exact same sequence, and turned it into a CI regression test.
+## 60-second quickstart
 
-## Files
+From the repository root, with Python 3.12+ (CI uses 3.12), Node.js/npm compatible with
+the UI package, Bash and Make installed:
 
-| File | What it mocks |
+```sh
+make setup && make demo
+```
+
+Setup creates `.venv`, installs the Python development dependencies and runs `npm ci`
+in `ui/`. Press Enter between demo scenes. This is the quickstart command, not a
+promise that dependency downloads or exhaustive exploration finish in 60 seconds.
+Python-only contributors
+can run `python3 -m venv .venv` and `.venv/bin/python -m pip install -e '.[dev]'`.
+
+```sh
+make test       # foundation/product tests and automation safety tests
+make demo-fast  # same real commands, no recording pauses
+make regress    # replay committed counterexamples, then generated pytest tests
+make check      # full bounded check against scripts/ci_sut.txt
+make ui         # build ui/dist
+make serve      # build UI, serve http://127.0.0.1:8765
+```
+
+`make check SUT=v0.3.2` chooses another reference version. Defaults are 120 moves,
+3 injections and a 4000 ms horizon (`DEPTH`, `INJECTIONS`, `HORIZON_MS` overrides).
+One tick is **50 ms**; depth counts both ticks and injections. PASS applies only to
+the specified model, assumptions and bounds. Output goes to `out/check/`; each demo
+uses its own fresh `out/demo.*` directory. `make serve` serves the newest demo directory;
+`bash scripts/serve.sh 8765 out/check` serves another one.
+
+## The demo to verify
+
+The bug is in **our reference firmware** v0.3.1: the inverter keeps discharging on
+the hub's last command for 1000 ms, which is longer than the model's 500 ms shutdown
+budget. The checker's shortest I1 counterexample is a BMS fault plus a hub↔inverter link
+loss. A separate I2 counterexample (hub restart) shows the hub restoring an old
+DISCHARGE command from NVM without a BMS report. The budget is a reference requirement,
+not a measured or supplied Base safety requirement.
+
+The scripted acceptance sequence is:
+
+1. A BMS fault without a restart passes in simulation.
+2. Checking `v0.3.1` produces an I1 counterexample, selected by its real content-hash id.
+3. Explain it and replay the original failure 100 times to check determinism.
+4. Replay against `v0.3.2`: the hub-only fix still fails I1.
+5. Replay against `v0.3.3`: inverter fallback passes; full bounded checking also passes.
+6. Generate a regression from that artifact and run `pytest tests/regress`.
+
+Observed on 2026-09-27 (M1 Pro, single thread; details in [STATUS.md](STATUS.md)):
+
+| Measurement | Observed result |
 |---|---|
-| `mocks/index.html` | The visual demo: run summary, counterexample swimlane, replay before/after fix, CI check. Open in a browser. |
-| `mocks/cli.md` | Terminal transcripts for every demo step (`check`, `explain`, `replay`, `regress`, `ci`). |
-| `mocks/spec_sketch.py` | How the model is written: **one** transition definition shared by the checker and the simulator. |
-| `mocks/counterexample-0017.json` | The artifact the checker emits and the replayer consumes. |
-| `mocks/test_cex_0017.py` | The regression test generated from that counterexample. |
-| `mocks/fleetflight-verify.yml` | GitHub Actions job that runs it on every firmware PR. |
+| Counterexample id and shortest path | `cex-286e0592`: `bms_fault@0`, `network_loss@0`, 10 ticks (12 moves); I1 violated at 500 ms |
+| Original trace hash / repeat consistency | 13/13 steps match the checker; 100/100 replays give `sha256:b545736726cb` |
+| v0.3.1 / v0.3.2 / v0.3.3 fault-to-stop windows | 1050 / 1050 / 250 ms (budget 500) |
+| v0.3.1 check | 1,291,349 states, 1,844,026 transitions, 38.2 s; I1, I2, I4 FAIL |
+| v0.3.3 explored states, transitions and elapsed time | 1,187,853 states, 1,728,511 transitions, 35.5 s; all PASS, worst I1 window 450 ms |
 
-## The bug the demo finds (in our reference implementation)
+The scripts require exit 1 for the demonstrated failures and exit 0 for successes;
+usage errors and missing implementations stop the demo. A passing search must also
+report `stats.complete = true`. Mock and fixture data are never substituted.
 
-**Stale-command resurrection after hub restart.**
+## Architecture
 
-1. Inverter is discharging 5 kW under hub command `seq 41` (valid for 30 s).
-2. BMS goes `FAULTED` (injected overtemp). It sends `FAULT` once (edge-triggered).
-3. That message is delayed 400 ms (inside the assumed ≤ 800 ms bus latency bound).
-4. Hub restarts while the message is in flight. Its RX buffer is cleared, so the fault is lost.
-5. Hub boots, restores `seq 41` from NVM for "restart recovery", re-sends `DISCHARGE 5 kW`.
-6. Inverter accepts it (not expired) and its watchdog is refreshed.
-7. `BMS = FAULTED ∧ Inverter = DISCHARGING` lasts 600 ms > the 500 ms bound. **I1 violated.**
+```mermaid
+flowchart LR
+    Spec[Spec: invariants and bounds] --> Shared[One model transition definition + SUT hooks]
+    Shared --> Checker[Bounded BFS checker]
+    Shared --> Simulator[Deterministic simulator]
+    Checker --> CEX[Minimal counterexample]
+    CEX --> Replay[Replay across SUT versions]
+    Simulator --> Replay
+    Replay --> Regression[Generated regression test]
+    Regression --> CI[CI regression gate]
+    Checker --> CI
+```
 
-Without step 4, the same fault reaches the hub at t = 500 ms and the inverter stops at 550 ms: **PASS**.
-That's the point of the demo: the happy-path test passes; only exhaustive ordering finds this.
+The checker enumerates enabled moves; the simulator executes chosen moves. Both call
+the model's pure `apply` function. Counterexamples contain injections with tick indices
+plus a tick count. Replay continues to the horizon, comparing hashes over the original
+counterexample length. Changed firmware may disable an injection: it is skipped and
+reported, never forced. See the frozen [contract](CONTRACT.md).
 
-**Fix, in two rounds (this is the best part of the demo):**
-- *v0.3.2, hub-side:* boot into `DEGRADED`, drop the NVM command, send `STOP` on boot. Replaying
-  cex-0017 **still fails**: shutdown takes 550 ms because the 400 ms hub boot alone eats the budget.
-- *v0.3.3, local fallback:* the inverter shuts down after 200 ms without a hub heartbeat. cex-0017
-  passes (300 ms) and the full check passes. The checker also reports the cost: every hub restart
-  now idles the inverter for about 400 ms.
-- The lesson is about architecture, not a patch: safety can't depend on a component that can restart.
+## Built vs roadmap
 
-On honesty: we write the reference hub *naively* (restart recovery that trusts NVM is a common,
-reasonable-looking pattern), then let the checker find what's wrong with it. We say that out loud in
-the video instead of pretending it's a Base bug.
-
-## Build vs roadmap
-
-| Layer | Hackathon | Roadmap |
+| Layer | Built (on `integration`) | Roadmap |
 |---|---|---|
-| Model backend | Behavioral state machines (Python) | PLECS / SIL → HIL → physical Gen 3 |
-| Checker | Explicit-state BFS over 100 ms ticks, bounded depth | TLA+/Apalache export for unbounded proofs |
-| System under test | Reference hub manager | Real hub-manager code; SIL-compiled BMS/inverter firmware |
-| Scenarios | Fault/timing injection enumerated by the checker | Seeded from real field telemetry sequences |
-| Fleet | Stretch: instantiate verified Virtual Core × N | Fleet invariants under distributed failure |
+| Shared definition | Pure hook API, deterministic hashes, schemas, contract tests; `core-ref` model with `firmware-ref` v0.3.1–v0.3.3 | Real hub code through the hooks; SIL/FFI firmware |
+| Search | Bounded BFS, minimal counterexamples, cross-checked against an independent DFS oracle; `check --only` scopes the fault model | Symmetry / partial-order reduction |
+| Replay | Simulator, replay across SUT versions, regression generator, CLI, localhost HTTP API | HIL scenario runs (no bit-exact replay there) |
+| Demo and CI | Make targets, guarded scripts, committed regression corpus, workflow | Hosted Actions run and branch protection (needs a remote) |
+| Visual evidence | Real-data UI (spec, checks, counterexample swimlane, replay, versions, regressions) | `GET /api/regress` for the generated test source |
+| Real firmware / fleet | No hardware validation claimed | SIL/FFI adapters, HIL, physical systems, fleet invariants |
 
-## Explicit assumptions (shown on screen, not buried)
+## Assumptions and claims
 
-- **ASSUMED** bus latency ≤ 800 ms; messages can be delayed, dropped, duplicated, reordered.
-- **ASSUMED** BMS fault message is edge-triggered; periodic status every 2 s.
-- **ASSUMED** inverter holds last setpoint for 1 s without a hub command, then goes `IDLE`.
-- **ASSUMED** shutdown bound 500 ms. (Real number would come from Base's safety requirements.)
-- **OUT OF SCOPE** hardware interlocks (contactors, hardwired BMS trip). This verifies the *software*
-  coordination layer, which is the layer that races.
+- **ASSUMED:** the discrete model, fault domains, bus timing and restart behavior
+  represent the coordination behavior being investigated.
+  `fleetflight describe --model core-ref --json` and every report expose the exact assumptions.
+- **ASSUMED:** the reference shutdown budget is 500 ms. Production requirements must
+  come from the firmware/system owner.
+- **OUT OF SCOPE:** contactors, hardwired BMS trips, analog electrical dynamics and
+  hardware failures outside the declared model.
+- A shortest counterexample means shortest in model moves under BFS. It does not
+  imply the fewest physical root causes or an unbounded safety proof.
+- `core-ref` is a reference implementation we wrote. We have not found a Base Gen 3
+  bug, verified Base firmware, or established that this models Base's architecture.
+- `mocks/` and `fixtures/` are explicitly illustrative. Their timings, counts and
+  hashes are not results and must not appear as measured evidence.
 
-## Why not just PLECS / TLA+ / unit tests?
+## CI and the red-to-green PR
 
-- **PLECS** answers "does the power system behave correctly?" FleetFlight answers "does the software
-  behave correctly when async components, comms, faults and timing interact?" PLECS is a future backend.
-- **TLA+** checks a spec that drifts from the code. Here the checker and simulator execute the *same*
-  transition functions, so a counterexample is directly runnable against the system under test.
-- **Unit tests** check the orderings someone thought of. The checker checks all of them within bounds.
+The workflow has independent `test`, `regress` and `check` jobs. `regress` replays the
+committed corpus against `scripts/ci_sut.txt`, then runs generated pytest tests.
+It fails when the corpus is empty. The corpus holds `cex-286e0592` (from the real demo
+run); it passes against v0.3.3 and fails if the pin is moved back to v0.3.1 or v0.3.2.
+The slower `check` job publishes a Markdown summary even on an invariant failure
+and uploads available counterexamples on failure.
 
-Prior art to acknowledge: FoundationDB / TigerBeetle deterministic simulation, Jepsen, TLA+ at AWS,
-Antithesis. The combination we'd claim is narrower: shared-definition model checking → deterministic
-replay → generated regression, applied to BMS/inverter/hub coordination.
+The repository owner must mark **regress** as required in GitHub branch protection
+to block merges; a workflow file alone cannot configure that. The exact local and
+optional publishing steps are in [the demo PR plan](scripts/demo_pr.md).
+
+## Prior art
+
+[FoundationDB](https://apple.github.io/foundationdb/testing.html) uses deterministic
+simulation for repeatable distributed failure tests.
+[TigerBeetle](https://github.com/tigerbeetle/tigerbeetle) is another relevant deterministic
+simulation project. [Jepsen](https://jepsen.io/) tests distributed-system safety.
+[TLA+](https://lamport.azurewebsites.net/tla/tla.html) models concurrent systems and has
+model-checking and proof tools; sharing executable transitions here reduces translation
+between this checker and simulator, but does not remove model/production gaps.
+[Antithesis](https://antithesis.com/product/) combines fault injection and deterministic
+replay. FleetFlight's intended contribution is a small, inspectable workflow applying
+these ideas to BMS/hub/inverter coordination. PLECS or other plant simulation would be
+a future backend, not a capability claimed here.
+
+## Repository layout
+
+| Path | Purpose |
+|---|---|
+| `src/fleetflight/core.py`, `CONTRACT.md`, `schemas/` | Frozen API, formats and determinism rules |
+| `src/fleetflight/{models,sut,check}/` | Model, reference controllers and checker streams |
+| `src/fleetflight/{sim,regress,report}/`, `cli.py` | Replay, generated tests, reports and CLI stream |
+| `tests/`, `tests/regress/` | Product tests and generated counterexample regressions |
+| `scripts/`, `Makefile`, `.github/workflows/` | Local reproduction, recording and CI |
+| `ui/` | UI stream (absent until integrated) |
+| `mocks/`, `fixtures/` | Labeled design examples, never measured evidence |
+| `sessions/`, `status/` | Stream instructions, progress and integration blockers |

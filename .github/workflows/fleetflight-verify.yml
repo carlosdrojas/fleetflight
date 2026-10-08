@@ -1,0 +1,85 @@
+name: fleetflight-verify
+
+on:
+  pull_request:
+  push:
+    branches: [main, integration]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install -e '.[dev]'
+      - name: Pytest
+        run: python -m pytest -q
+      - name: Automation safety checks
+        run: python -m pytest -q scripts/test_automation.py
+
+  regress:
+    # Configure this job as a required status check in GitHub branch protection.
+    name: regress
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m venv .venv
+      - run: .venv/bin/python -m pip install -e '.[dev]'
+      - name: Replay stored counterexamples against the pinned SUT
+        run: make regress
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-results
+          path: out/
+          if-no-files-found: warn
+
+  check:
+    # Independent of regress so a red fast lane still gets a full search report.
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m venv .venv
+      - run: .venv/bin/python -m pip install -e '.[dev]'
+      - name: Bounded verification
+        run: make check
+      - name: Markdown verification summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f out/check/check.json ]]; then
+            .venv/bin/fleetflight report out/check/check.json --markdown >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'No check report was produced. Inspect the failed setup/check step; this is not a verification pass.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: counterexamples-and-check-report
+          path: |
+            out/check/cex-*.json
+            out/check/check*.json
+          if-no-files-found: warn
