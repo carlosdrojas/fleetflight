@@ -35,7 +35,7 @@ export default function SpecScreen({ shared }: { shared: Shared }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+      <div className="stack-sm" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
         <section className="card">
           <div className="card-h">
             <b>System model</b>
@@ -87,7 +87,7 @@ export default function SpecScreen({ shared }: { shared: Shared }) {
         </section>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)", gap: 20 }}>
+      <div className="stack-sm" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)", gap: 20 }}>
         <section className="card" style={{ gap: 8 }}>
           <div className="card-h">
             <b>Assumptions</b>
@@ -95,7 +95,7 @@ export default function SpecScreen({ shared }: { shared: Shared }) {
           </div>
           {assumptions.length ? assumptions.map((a, i) => <AssumptionRow key={i} text={a} />) : <span className="muted">none declared</span>}
         </section>
-        <section className="card" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px 20px", alignContent: "start" }}>
+        <section className="card stack-sm" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px 20px", alignContent: "start" }}>
           <div style={{ gridColumn: "span 2", fontWeight: 600 }}>Search bounds</div>
           <Field k="Strategy" v="BFS · shortest counterexample first" />
           <Field k="Horizon" v={num(b.horizon_ms) !== null ? `${fmtDuration(b.horizon_ms as number)}${tick ? ` · ${Math.round((b.horizon_ms as number) / tick)} ticks` : ""}` : "—"} />

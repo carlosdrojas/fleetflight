@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, SITE_MODE } from "./lib/api";
 import { FixtureCtx, HeaderCtx, href, useAsync, useFixtureFlag, useRoute } from "./lib/hooks";
 import type { Describe, RunList } from "./lib/types";
@@ -92,6 +92,10 @@ export default function App() {
     setFlags((f) => (f[k] === v ? f : { ...f, [k]: v }));
   }, []);
   const [header, setHeader] = useState<{ crumb: string; sut?: string | null }>({ crumb: "" });
+  // Phones: the nav is a drawer behind the menu button; any navigation closes it.
+  const [navOpen, setNavOpen] = useState(false);
+  const routeKey = route.join("/");
+  useEffect(() => setNavOpen(false), [routeKey]);
 
   const cexIds = useMemo(() => {
     const out: string[] = [];
@@ -160,8 +164,13 @@ export default function App() {
     <FixtureCtx.Provider value={setFlag}>
       <HeaderCtx.Provider value={setHeader}>
         <SharedFlags describe={describe.data} runs={runs.data} />
-        <div className="app">
+        <div className={`app${navOpen ? " nav-open" : ""}`}>
           <header className="topbar">
+            <button type="button" className="nav-toggle" aria-label={navOpen ? "Close menu" : "Open menu"} aria-expanded={navOpen} aria-controls="primary-nav" onClick={() => setNavOpen((o) => !o)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                {navOpen ? <path d="M6 6l12 12M18 6 6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+              </svg>
+            </button>
             <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
               <rect x="1" y="1" width="24" height="24" rx="7" fill="#7AA2FF" />
               <path d="M5 14h4l2-6 4 11 2-5h4" stroke="#0D1015" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -180,7 +189,8 @@ export default function App() {
           </header>
           {SITE_MODE && <SiteBanner />}
           <div className="body">
-            <nav className="nav" aria-label="Primary">
+            {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
+            <nav className="nav" id="primary-nav" aria-label="Primary">
               <div className="nav-h">VERIFY</div>
               {pages.map((p) => (
                 <a key={p.key} href={p.to} aria-current={(page ?? "spec") === p.key ? "page" : undefined}>

@@ -160,13 +160,13 @@ function SceneBody({ shared, cex, cexId, atMs }: { shared: Shared; cex: Countere
         </div>
       </div>
 
-      <div className="scene-grid" style={{ gridTemplateColumns: `repeat(${Math.max(panels.length, 1)}, minmax(0, 1fr))` }}>
+      <div className="scene-grid stack-sm" style={{ gridTemplateColumns: `repeat(${Math.max(panels.length, 1)}, minmax(0, 1fr))` }}>
         {panels.map((p) => (
           <ScenePanel key={p.sut} panel={p} t={t} bound={bound} views={views.current} invId={inv?.id ?? null} />
         ))}
       </div>
       <p className="faint small" style={{ marginTop: 10 }}>
-        Each panel replays the counterexample through the real transition code (POST /api/replay). Drag to orbit, scroll to zoom. Simulated time runs at {speed}× real time.
+        Each panel replays the counterexample through the real transition code (POST /api/replay). On desktop, drag to orbit and scroll to zoom. Simulated time runs at {speed}× real time.
       </p>
     </>
   );

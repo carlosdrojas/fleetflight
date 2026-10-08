@@ -42,7 +42,7 @@ export default function RegressScreen({ shared, cexId }: { shared: Shared; cexId
       )}
       {list.error && <ErrorState title="Could not load regression tests" error={list.error} onRetry={list.reload} />}
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)", gap: 18 }}>
+      <div className="stack-sm" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)", gap: 18 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
           {!selected && <Empty>No counterexamples yet, so no regression tests to generate.</Empty>}
           {selected && source.data?.source ? (

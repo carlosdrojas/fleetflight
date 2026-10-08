@@ -101,6 +101,12 @@ export class SceneView {
     this.controls.minDistance = 6;
     this.controls.maxDistance = 22;
     this.controls.maxPolarAngle = Math.PI * 0.47;
+    // Touch screens: a stacked panel that swallows swipes traps the page scroll, so orbiting
+    // is a desktop (mouse) feature and swipes scroll the page.
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      this.controls.enabled = false;
+      this.labels.domElement.style.touchAction = "pan-y";
+    }
 
     this.scene.fog = new THREE.Fog(C.bg, 16, 30);
     this.scene.add(new THREE.HemisphereLight(0xbfd2ff, 0x0d1015, 0.9));

@@ -186,7 +186,9 @@ main.main > * { flex-shrink: 0; }
 .scene-grid { display: grid; gap: 14px; }
 .scene-panel { position: relative; height: 560px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); transition: border-color 0.2s, box-shadow 0.2s; }
 .scene-panel.is-fail { border-color: var(--fail); box-shadow: 0 0 0 1px var(--fail), 0 0 28px rgba(255, 107, 87, 0.18); }
-.scene-canvas { position: absolute; inset: 0; }
+.scene-canvas { position: absolute; inset: 0; container-type: size; }
+/* Narrow panels have no room for the LINK DOWN tag; the red ✕, red wire and caption still show it. */
+@container (max-width: 560px) { .scene-tag { display: none; } }
 .scene-canvas canvas { display: block; }
 .scene-labels { position: absolute; inset: 0; }
 .scene-hud-top { position: absolute; top: 12px; left: 14px; display: flex; align-items: center; gap: 10px; pointer-events: none; }
@@ -227,3 +229,35 @@ main.main > * { flex-shrink: 0; }
 .site-banner { display: flex; align-items: center; gap: 10px; padding: 8px 24px; border-bottom: 1px solid var(--line); background: var(--accent-bg); color: var(--text2); font-size: 13px; }
 .site-banner b { color: var(--accent-hi); font-weight: 600; }
 .site-banner a { margin-left: auto; font-weight: 600; text-decoration: none; white-space: nowrap; }
+
+/* phones and narrow windows */
+.nav-toggle { display: none; }
+@media (max-width: 860px) {
+  body { min-width: 0; }
+  .app { height: auto; min-height: 100%; }
+  .topbar { height: 52px; padding: 0 12px; gap: 10px; position: sticky; top: 0; z-index: 30; background: var(--bg); }
+  .nav-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; margin-left: -4px; border: 1px solid var(--line2); border-radius: 8px; background: var(--panel); cursor: pointer; }
+  .topbar .vsep, .topbar .crumb, .pill-sut { display: none; }
+  .site-banner { flex-wrap: wrap; gap: 4px 8px; padding: 8px 16px; font-size: 12.5px; }
+  .site-banner a { margin-left: 0; }
+  .body { display: block; }
+  .nav { position: fixed; top: 52px; left: 0; bottom: 0; z-index: 40; width: min(280px, 82vw); overflow-y: auto; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 8px 0 24px rgba(0, 0, 0, 0.4); }
+  .nav-open .nav { transform: none; }
+  .nav-backdrop { position: fixed; inset: 52px 0 0 0; z-index: 35; background: rgba(5, 7, 10, 0.6); }
+  main.main { padding: 16px; overflow: visible; }
+  .ph { flex-direction: column; align-items: stretch; gap: 12px; }
+  .ph-text h1 { font-size: 22px; overflow-wrap: anywhere; }
+  .ph-actions { margin-left: 0; flex-wrap: wrap; }
+  .grid2, .stack-sm { grid-template-columns: minmax(0, 1fr) !important; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card, .tbl { overflow-x: auto; }
+  .tbl-row { min-width: 680px; }
+  .seg { flex-wrap: wrap; }
+  .scene-bar { gap: 8px; }
+  .scene-scrub { order: 10; flex-basis: 100%; min-width: 0; }
+  .scene-clock { width: auto; }
+  .scene-panel { height: 440px; }
+  .scene-log { min-height: 0; font-size: 12px; }
+  .scene-log li:not(:nth-last-child(-n + 2)) { display: none; }
+  .scene-alert { top: 44px; left: 14px; right: auto; }
+}

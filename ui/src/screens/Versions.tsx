@@ -103,7 +103,7 @@ function VersionsView({ shared, cex, cexId }: { shared: Shared; cex: Counterexam
                     {same && <span className="muted" style={{ fontWeight: 400 }}> · found on</span>}
                   </span>
                   <span className="small muted mono">
-                    {r ? `${r.hash_match ? "trace identical" : `diverges at step ${r.first_divergence ?? "?"}`}${(r.skipped_moves ?? []).length ? ` · ${(r.skipped_moves ?? []).length} skipped` : ""}` : row.state === "loading" ? "replaying…" : ""}
+                    {r ? `${r.hash_match ? "trace identical" : r.same_sut === false ? `trace differs from ${sutVersion(cex.sut?.id)} (expected)` : `diverges at step ${r.first_divergence ?? "?"}`}${(r.skipped_moves ?? []).length ? ` · ${(r.skipped_moves ?? []).length} skipped` : ""}` : row.state === "loading" ? "replaying…" : ""}
                   </span>
                 </div>
                 <div style={{ position: "relative", height: 40 }}>
